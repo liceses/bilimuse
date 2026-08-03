@@ -6,6 +6,10 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
+import json
+import secrets
 from typing import ClassVar, Self
 
 import httpx
@@ -17,6 +21,40 @@ from .bilibili import _strip_html
 
 NETEASE_API = "https://music.163.com"
 MIGU_API = "https://pd.musicapp.migu.cn/MIGUM2.0/v1.0"
+
+# weapi 常量（公开的固定参数，来自社区逆向资料）
+_W_NONCE = "0CoJUm6Qyw8W8jud"
+_W_PUBKEY = "010001"
+_W_MODULUS = (
+    "00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e4"
+    "17629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575"
+    "cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7"
+)
+_W_IV = b"0102030405060708"
+_W_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+def _aes_encrypt(text: str, key: str) -> str:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+    pad = 16 - len(text) % 16
+    text += chr(pad) * pad
+    enc = Cipher(algorithms.AES(key.encode()), modes.CBC(_W_IV)).encryptor()
+    return base64.b64encode(enc.update(text.encode("utf-8")) + enc.finalize()).decode()
+
+
+def _rsa_encrypt(text: str) -> str:
+    rev = text[::-1]
+    num = int(binascii.hexlify(rev.encode("utf-8")), 16)
+    return format(pow(num, int(_W_PUBKEY, 16), int(_W_MODULUS, 16)), "x").zfill(256)
+
+
+def _weapi_params(payload: dict) -> dict:
+    """生成网易云 weapi 请求参数（params + encSecKey）。"""
+    sec_key = "".join(secrets.choice(_W_CHARS) for _ in range(16))
+    body = json.dumps(payload, separators=(",", ":"))
+    params = _aes_encrypt(_aes_encrypt(body, _W_NONCE), sec_key)
+    return {"params": params, "encSecKey": _rsa_encrypt(sec_key)}
 
 
 class _BaseMeta:
@@ -57,11 +95,23 @@ class _BaseMeta:
 
 
 class NeteaseMeta(_BaseMeta):
-    """网易云（明文旧版接口，免逆向签名）。版权有限，用作兜底。"""
+    """网易云：明文旧版快速路径 + weapi 官方主链路兜底。
+
+    weapi 为网页端正在用的接口，长期稳定；明文旧版随时可能下线，故作主备切换。
+    """
 
     name = "netease"
 
     async def search(self, query: str, limit: int = 10) -> list[SongMeta]:
+        try:
+            songs = await self._search_legacy(query, limit)
+            if songs:
+                return songs
+        except Exception:  # noqa: BLE001, S110 - 旧版失效自动降级 weapi
+            pass
+        return await self._search_weapi(query, limit)
+
+    async def _search_legacy(self, query: str, limit: int) -> list[SongMeta]:
         r = await self.client.get(
             f"{NETEASE_API}/api/search/get",
             params={"s": query, "type": 1, "offset": 0, "limit": limit},
@@ -69,16 +119,24 @@ class NeteaseMeta(_BaseMeta):
         r.raise_for_status()
         return self._parse_songs(r.json())
 
+    async def _search_weapi(self, query: str, limit: int) -> list[SongMeta]:
+        payload = {"s": query, "type": 1, "limit": limit, "offset": 0, "csrf_token": ""}
+        r = await self.client.post(
+            f"{NETEASE_API}/weapi/search/get/web", data=_weapi_params(payload)
+        )
+        r.raise_for_status()
+        return self._parse_songs(r.json())
+
     def _parse_songs(self, data: dict) -> list[SongMeta]:
         songs: list[SongMeta] = []
         for s in (data.get("result") or {}).get("songs") or []:
-            album = s.get("album") or {}
+            album = s.get("album") or s.get("al") or {}
             songs.append(
                 SongMeta(
                     source=self.name,
                     id=s.get("id") or 0,
                     name=_strip_html(s.get("name") or ""),
-                    artists=[a.get("name", "") for a in (s.get("artists") or []) if a.get("name")],
+                    artists=[a.get("name", "") for a in (s.get("artists") or s.get("ar") or []) if a.get("name")],
                     album=album.get("name") or "",
                     duration_ms=s.get("duration") or 0,
                     cover=album.get("picUrl") or "",
@@ -93,12 +151,32 @@ class NeteaseMeta(_BaseMeta):
         return await self._download_image(url)
 
     async def get_cover_url(self, song_id: int) -> str:
+        try:
+            url = await self._cover_legacy(song_id)
+            if url:
+                return url
+        except Exception:  # noqa: BLE001, S110 - 旧版失效自动降级 weapi
+            pass
+        return await self._cover_weapi(song_id)
+
+    async def _cover_legacy(self, song_id: int) -> str:
         r = await self.client.get(
             f"{NETEASE_API}/api/song/detail", params={"id": song_id, "ids": f"[{song_id}]"}
         )
         r.raise_for_status()
-        for s in r.json().get("songs") or []:
-            al = s.get("album") or {}
+        return self._pic_from_songs(r.json())
+
+    async def _cover_weapi(self, song_id: int) -> str:
+        payload = {"c": f'[{{"id": {song_id}}}]', "csrf_token": ""}
+        r = await self.client.post(f"{NETEASE_API}/weapi/v3/song/detail", data=_weapi_params(payload))
+        r.raise_for_status()
+        return self._pic_from_songs(r.json())
+
+    @staticmethod
+    def _pic_from_songs(data: dict) -> str:
+        """weapi v3 用 al/ar 键，旧接口用 album/artists 键，兼容两者。"""
+        for s in (data.get("songs") or []):
+            al = s.get("album") or s.get("al") or {}
             if al.get("picUrl"):
                 return al["picUrl"]
         return ""

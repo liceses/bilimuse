@@ -17,6 +17,8 @@ B 站深度定制的音乐下载器：输入歌名/歌手/**歌词片段** → �
 - `lyric-align` + `faster-whisper`（歌词强制对齐校准）
 - `audio-offset-finder`（整体偏移校正，可选）
 - ffmpeg（可选内嵌）：**`imageio-ffmpeg` 作为可选 extra** 打包静态 ffmpeg，`pip install -e ".[ffmpeg]"` 即装即用，不依赖用户系统环境；纯 m4a 用户可零依赖
+- `qrcode`（纯 Python，终端渲染 B 站扫码登录二维码）
+- `cryptography`（网易云 **weapi** 兜底端点：AES+RSA 签名）
 - CLI：`typer`（基础命令）+ `textual`（交互式搜索/选版本）
 - Web：`fastapi` + 单页前端（挂核心库，二期）
 - 部署：`setup.ps1` / `setup.sh` 一键装依赖；`musicalbili doctor` 检测环境
@@ -37,6 +39,7 @@ MusicalBILI/
 │   │   ├── lyrics.py    # LRCLIB/网易云/QQ/B站AI字幕
 │   │   └── meta.py      # 网易云反查真实 歌名/歌手/专辑/封面/时长
 │   ├── services/
+│   │   ├── auth.py       # B站扫码登录（QR generate/poll → SESSDATA）
 │   │   ├── search.py    # 两跳反查：歌词→歌曲→B站版本
 │   │   ├── download.py  # DASH音频流下载 + 转码
 │   │   ├── tagger.py    # mutagen 写标签 + 内嵌
@@ -99,11 +102,12 @@ MusicalBILI/
 
 | 风险 | 对策 |
 |---|---|
-| B站风控 -412 | Wbi 签名 + buvid3 cookie + 合理 UA/Referer；先 GET 首页拿 cookie；失败重试+退避 |
-| 网易云/QQ 逆向接口变动 | 接口层抽象，多源降级；LRCLIB 为主避免主链路依赖逆向 |
+| B站搜索风控（匿名 v_voucher / -412） | **扫码登录降风控**（`musicalbili login` 存 SESSDATA）；搜索**双端点自动降级**：登录态优先 wbi → 失败回退旧版；Wbi 签名 + buvid3 + 合理 UA/Referer；失败重试+退避 |
+| 网易云逆向接口变动 | **明文旧版 → weapi 双端点自动降级**（weapi 为官方网页主链路，长期稳定）；接口层抽象，多源降级；LRCLIB 为歌词主源避免主链路依赖逆向 |
 | whisper 对歌唱识别不准 | 调参（关 VAD、CJK 阈值、必要时分离人声）；仅当快速校准无法收敛时启用 |
 | ffmpeg 缺失 | ffmpeg 为可选 extra（imageio-ffmpeg 内嵌，PyPI 拉取不经 GitHub）；查找链 config→系统PATH→内置；缺失仅 mp3/flac 报错并给出安装指引，m4a 不受影响 |
 | 高音质需会员 | 未登录/VIP 自动降级到可用最高音质，README 说明 |
+| 接口失效（长期） | 逆向接口无法"确保"长期可用，设计为**抗失效**：多源冗余（咪咕+网易云）、每源多端点自动降级、`doctor --network` 逐源探测告警、接口适配集中并注释参考文档 |
 
 ## 部署
 
@@ -111,6 +115,7 @@ MusicalBILI/
 - **完整（mp3/flac）**：`pip install -e ".[ffmpeg]"`，imageio-ffmpeg 从 PyPI（国内可用清华镜像）拉取 ~60MB 静态 ffmpeg 到 venv，装完即离线可用。
 - `setup.ps1` / `setup.sh`：一键完成 venv + 依赖，`--with-ffmpeg` 开关加装完整模式。
 - `musicalbili doctor`：检测 Python / ffmpeg（config→系统PATH→内置）/ 配置目录，输出修复指引。
+- **登录降风控**：`musicalbili login` 手机扫码登录 B 站（存 SESSDATA），大幅降低搜索风控、提升音质、解锁 AI 字幕；`logout` 清除。
 
 ## 里程碑
 

@@ -119,13 +119,27 @@ class BilibiliClient:
     async def search_video(self, keyword: str, order: str = "click", limit: int = 20) -> list[VideoVersion]:
         """搜索视频。order 支持 totalrank/click/pubdate/dm。
 
-        用旧版搜索接口（wbi 版在本环境被风控，仅返回 v_voucher）。
+        双端点自动降级：登录态优先 wbi 版（风控更低），遇 v_voucher/空结果/-412 回退旧版。
         """
         await self._ensure_session()
+        if self.config.sessdata:
+            try:
+                data = await self._get(
+                    "x/web-interface/wbi/search/type",
+                    {"search_type": "video", "keyword": keyword, "order": order, "page_size": limit},
+                    wbi=True,
+                )
+                if data.get("result"):
+                    return self._parse_search(data)
+            except BilibiliError:
+                pass
         data = await self._get(
             "x/web-interface/search/type",
             {"search_type": "video", "keyword": keyword, "order": order, "page_size": limit},
         )
+        return self._parse_search(data)
+
+    def _parse_search(self, data: dict) -> list[VideoVersion]:
         versions: list[VideoVersion] = []
         for item in data.get("result") or []:
             bvid = item.get("bvid")

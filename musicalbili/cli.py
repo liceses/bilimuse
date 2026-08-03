@@ -13,6 +13,7 @@ from .config import Config, default_config_dir
 from .db import DownloadDB
 from .providers.bilibili import BilibiliClient, BilibiliError
 from .providers.meta import MiguMeta, NeteaseMeta
+from .services.auth import LoginError, bili_login
 from .services.download import download_song
 from .services.tagger import auto_tag
 
@@ -179,11 +180,39 @@ async def _tag(cfg: Config, file: Path, query: str) -> tuple:
 
 
 @app.command()
-def doctor() -> None:
-    """检测运行环境：Python / ffmpeg / 配置目录。"""
-    cfg = Config.load()
+def login(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
+    """手机扫码登录 B 站，降低风控并解锁高音质。"""
+    cfg = Config.load(config)
+    typer.echo("请用 B 站手机 App 扫码...")
+    try:
+        sessdata = asyncio.run(bili_login(cfg))
+    except LoginError as e:
+        typer.echo(f"登录失败: {e}", err=True)
+        raise typer.Exit(code=1) from e
+    cfg.sessdata = sessdata
+    cfg.save(config)
+    typer.echo("登录成功，SESSDATA 已保存")
+
+
+@app.command()
+def logout(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
+    """清除 B 站登录态。"""
+    cfg = Config.load(config)
+    cfg.sessdata = ""
+    cfg.save(config)
+    typer.echo("已退出登录")
+
+
+@app.command()
+def doctor(
+    network: bool = typer.Option(False, "--network", help="联网探测各数据源连通性"),
+    config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
+) -> None:
+    """检测运行环境：Python / ffmpeg / 登录态 / 接口连通性。"""
+    cfg = Config.load(config)
     typer.echo(f"Python: {sys.version.split()[0]} (>=3.11 可用)")
     typer.echo(f"配置目录: {default_config_dir()}")
+    typer.echo("B站登录态: " + ("已登录（SESSDATA 已配置）" if cfg.sessdata else "未登录（风控阈值更高，建议 musicalbili login）"))
 
     if cfg.ffmpeg_path:
         src = f"config.ffmpeg_path={cfg.ffmpeg_path}"
@@ -209,3 +238,28 @@ def doctor() -> None:
     count = len(db.list())
     db.close()
     typer.echo(f"下载历史: {count} 条")
+
+    if network:
+        typer.echo("-- 接口连通性探测 --")
+        asyncio.run(_probe_sources(cfg))
+
+
+async def _probe_sources(cfg: Config) -> None:
+    async with BilibiliClient(cfg) as b:
+        try:
+            v = await b.search_video("晴天", limit=1)
+            typer.echo(f"B站搜索: OK（{len(v)} 条）")
+        except BilibiliError as e:
+            typer.echo(f"B站搜索: 失败（{e}）", err=True)
+    async with MiguMeta(cfg) as migu:
+        try:
+            m = await migu.search("周杰伦 晴天", limit=1)
+            typer.echo(f"咪咕: OK（{len(m)} 条）")
+        except Exception as e:  # noqa: BLE001
+            typer.echo(f"咪咕: 失败（{e}）", err=True)
+    async with NeteaseMeta(cfg) as netease:
+        try:
+            n = await netease.search("周杰伦 晴天", limit=1)
+            typer.echo(f"网易云: OK（{len(n)} 条，源={n[0].source if n else '空'}）")
+        except Exception as e:  # noqa: BLE001
+            typer.echo(f"网易云: 失败（{e}）", err=True)

@@ -34,9 +34,11 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 ```bash
 musicalbili search "周杰伦 晴天"     # 搜索 B 站版本
 musicalbili info BV1d4411N7zD        # 查看视频详情/分 P
-musicalbili download BV1d4411N7zD --format mp3   # 下载（m4a/mp3/flac）
+musicalbili download BV1d4411N7zD --format mp3   # 下载（m4a/mp3/flac，自动打标签）
 musicalbili list-downloads           # 下载历史
-musicalbili doctor                   # 环境诊断
+musicalbili login                    # 手机扫码登录 B 站（降低风控/提升音质）
+musicalbili logout                   # 退出登录
+musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
 ```
 
 ## 配置

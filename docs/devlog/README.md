@@ -10,6 +10,7 @@
 | 2026-08-03 | [Bilibili 客户端](2026-08-03-bilibili-client.md) | M1 | Wbi 签名、搜索、view、playurl DASH 音频流 |
 | 2026-08-03 | [下载与转码](2026-08-03-download.md) | M2 | DASH 下载、m4a直拷/mp3-flac转码、命名、SQLite 去重 |
 | 2026-08-03 | [元数据反查与打标签](2026-08-03-metadata-tagger.md) | M3 | 咪咕/网易云多源反查、mutagen 打标签、webp封面转换 |
+| 2026-08-03 | [扫码登录与 API 加固](2026-08-03-login-hardening.md) | M3补 | B站扫码登录降风控、搜索双端点、网易云 weapi 兜底 |
 
 ## 技术沉淀速查表
 
@@ -29,3 +30,7 @@
 | 网易云无周杰伦版权 | 2018 授权到期，搜索只剩翻唱/remix → 咪咕 MIGUM2.0 为第一源 | `musicalbili/providers/meta.py` |
 | 咪咕封面 | 用搜索结果 `imgItems` URL（勿按 id 再搜），webp 用 ffmpeg 管道转 jpeg | `meta.py:96` |
 | 标题清洗/匹配 | `clean_title`+`split_query` 拆歌手/歌名，歌手命中±分 | `musicalbili/services/tagger.py:30` |
+| B站扫码登录 | passport qrcode generate/poll；外层 code=0 恒真，看 `data.code`；成功从 Set-Cookie 取 SESSDATA | `musicalbili/services/auth.py` |
+| B站搜索双端点 | 登录态优先 wbi，`result` 空(v_voucher)自动回退旧版 | `musicalbili/providers/bilibili.py:119` |
+| 网易云 weapi | 端点用 `weapi/search/get/web`（cloudsearch 已 50000005）；v3 详情用 `al`/`ar` 键 | `musicalbili/providers/meta.py:119` |
+| 登录降风控 | 匿名流量是 B 站风控重点，SESSDATA 后走 wbi 主链路 | 风险表 |
