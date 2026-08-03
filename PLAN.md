@@ -66,7 +66,7 @@ MusicalBILI/
 [2] 用户选版本 → bvid + cid
    │
    ▼
-[3] meta 反查：网易云 cloudsearch → 真实歌名/歌手/专辑/封面/时长
+[3] meta 反查：咪咕 MIGUM2.0 → 网易云（兜底），真实歌名/歌手/专辑/封面
    │
    ▼
 [4] download：x/player/wbi/playurl(fnval=4048) → DASH audio

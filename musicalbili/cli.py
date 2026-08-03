@@ -12,7 +12,9 @@ import typer
 from .config import Config, default_config_dir
 from .db import DownloadDB
 from .providers.bilibili import BilibiliClient, BilibiliError
+from .providers.meta import MiguMeta, NeteaseMeta
 from .services.download import download_song
+from .services.tagger import auto_tag
 
 app = typer.Typer(add_completion=False)
 
@@ -62,10 +64,11 @@ def download(
     bvid: str = typer.Argument(..., help="BV 号"),
     page: int = typer.Option(1, "--page", "-p", min=1, help="分 P 序号（默认 1）"),
     out_format: str = typer.Option("", "--format", "-f", help="m4a/mp3/flac（默认用配置）"),
+    no_tag: bool = typer.Option(False, "--no-tag", help="下载后不自动打标签"),
     dir: Path = typer.Option(None, "--dir", "-d", help="下载目录（覆盖配置）"),
     config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
 ) -> None:
-    """下载单个音频并记录到历史库。"""
+    """下载单个音频，自动反查元数据打标签并记录历史。"""
     cfg = Config.load(config)
     if dir is not None:
         cfg.download_dir = dir
@@ -73,15 +76,18 @@ def download(
         cfg.format = out_format
     db = DownloadDB()
     try:
-        path = asyncio.run(_download(cfg, db, bvid, page))
+        path, meta = asyncio.run(_download(cfg, db, bvid, page, no_tag))
     except (BilibiliError, RuntimeError) as e:
         typer.echo(f"下载失败: {e}", err=True)
         raise typer.Exit(code=1) from e
+    label = f"{meta.artist_str} - {meta.name}" if meta else str(path)
     typer.echo(f"\n已保存: {path}")
+    if meta:
+        typer.echo(f"标签: {label}")
     db.close()
 
 
-async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int) -> Path:
+async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: bool) -> tuple:
     async with BilibiliClient(cfg) as client:
         detail = await client.get_detail(bvid)
         pages = detail.pages or await client.get_pagelist(bvid)
@@ -112,8 +118,25 @@ async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int) -> Path:
     path = await download_song(
         bvid, cid, cfg=cfg, title=title, artist=detail.author, fmt=cfg.format, progress=progress
     )
-    db.add(bvid=bvid, cid=cid, title=title, artist=detail.author, format=path.suffix.lstrip("."), file_path=str(path))
-    return path
+    meta = None
+    if not no_tag:
+        typer.echo("反查元数据并打标签...")
+        async with MiguMeta(cfg) as migu, NeteaseMeta(cfg) as netease:
+            new_path, meta = await auto_tag(path, title, [migu, netease], cfg, fallback_artist=detail.author)
+        if meta:
+            path = new_path
+            typer.echo(f"匹配来源: {meta.source}")
+        else:
+            typer.echo("未匹配到曲目，保留原始命名", err=True)
+    db.add(
+        bvid=bvid,
+        cid=cid,
+        title=meta.name if meta else title,
+        artist=meta.artist_str if meta else detail.author,
+        format=path.suffix.lstrip("."),
+        file_path=str(path),
+    )
+    return path, meta
 
 
 @app.command()
@@ -127,6 +150,32 @@ def list_downloads() -> None:
     for r in rows:
         typer.echo(f"{r['bvid']} | {r['artist']} - {r['title']} [{r['format']}] -> {r['file_path']}")
     db.close()
+
+
+@app.command()
+def tag(
+    file: Path = typer.Argument(..., help="音频文件（mp3/m4a/flac）"),
+    query: str = typer.Option("", "--query", "-q", help="反查关键词（默认用文件名）"),
+    config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
+) -> None:
+    """按网易云反查为已有音频打标签。"""
+    cfg = Config.load(config)
+    if not file.is_file():
+        raise typer.Exit(f"文件不存在: {file}")
+    q = query or file.stem
+    result = asyncio.run(_tag(cfg, file, q))
+    new_path, meta = result
+    if not meta:
+        typer.echo("未匹配到网易云曲目", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"已打标签: {meta.name} - {meta.artist_str}")
+    if new_path != file:
+        typer.echo(f"已重命名: {new_path}")
+
+
+async def _tag(cfg: Config, file: Path, query: str) -> tuple:
+    async with MiguMeta(cfg) as migu, NeteaseMeta(cfg) as netease:
+        return await auto_tag(file, query, [migu, netease], cfg)
 
 
 @app.command()

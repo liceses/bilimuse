@@ -58,3 +58,19 @@ class PlayInfo(BaseModel):
     flac: AudioStream | None = None
     dolby: AudioStream | None = None
     video_title: str = ""
+
+
+class SongMeta(BaseModel):
+    """真实歌曲元数据（来自网易云/咪咕等反查）。"""
+
+    source: str = ""
+    id: int | str = 0
+    name: str
+    artists: list[str] = []
+    album: str = ""
+    duration_ms: int = 0
+    cover: str = ""
+
+    @property
+    def artist_str(self) -> str:
+        return " / ".join(self.artists) if self.artists else "Unknown"
