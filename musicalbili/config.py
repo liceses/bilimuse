@@ -31,6 +31,7 @@ class Config:
         self.sessdata: str = ""
         self.buvid3: str = ""
         self.proxy: str = ""
+        self.ffmpeg_path: str = ""
         self.ua: str = DEFAULT_UA
         self.filename_template: str = "{artist} - {title}.{ext}"
 

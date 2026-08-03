@@ -60,8 +60,15 @@
 
 ## 验证
 
-- `python -m musicalbili search "周杰伦 晴天" --limit 5`：返回 5 条 B 站版本（BV号/分区/时长/播放量/UP主/标题/封面）✅
-- `python -m musicalbili info BV1d4411N7zD`：标题、作者、cid、分 P 列表 ✅
-- playurl 实测：3 条 AAC 轨（30216/30232/30280），`pick_audio` 选中最高码率 30280，未登录无 flac/dolby ✅
 - `python -m pytest tests -q`：2 passed ✅
 - `python -m ruff check musicalbili tests`：All checks passed ✅
+- `python -m musicalbili search "周杰伦 晴天" --limit 5`：返回 5 条 B 站版本（BV号/分区/时长/播放量/UP主/标题/封面），标题已剥除 `<em class="keyword">` ✅
+- `python -m musicalbili info BV1d4411N7zD`：标题「【4K修复】周杰伦 - 晴天MV 2160P修复版」、作者 zyl2012_音乐无限、cid=317843818、分P 列表正确 ✅
+- playurl 实测（未登录）：
+  ```
+  AAC 轨 3 条: id=30216 bw=38231 / id=30232 bw=84710 / id=30280 bw=169316
+  flac=False dolby=False（未登录预期）
+  pick_audio → 30280（bandwidth 最高）
+  ```
+  → 返回 `code=0` 证明 Wbi 签名有效 ✅
+- 音轨 URL 可下载性：Range `bytes=0-199` → `HTTP 206`，Content-Type `application/octet-stream`，首 4 字节 `\x00\x00\x00$`（fMP4 ftyp box 头）✅

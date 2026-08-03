@@ -16,9 +16,10 @@ B 站深度定制的音乐下载器：输入歌名/歌手/**歌词片段** → �
 - `mutagen`（ID3 / FLAC / MP4 打标签 + 内嵌封面歌词）
 - `lyric-align` + `faster-whisper`（歌词强制对齐校准）
 - `audio-offset-finder`（整体偏移校正，可选）
-- `ffmpeg`（外部命令，仅 mp3/flac 转码时需要）
+- ffmpeg（可选内嵌）：**`imageio-ffmpeg` 作为可选 extra** 打包静态 ffmpeg，`pip install -e ".[ffmpeg]"` 即装即用，不依赖用户系统环境；纯 m4a 用户可零依赖
 - CLI：`typer`（基础命令）+ `textual`（交互式搜索/选版本）
 - Web：`fastapi` + 单页前端（挂核心库，二期）
+- 部署：`setup.ps1` / `setup.sh` 一键装依赖；`musicalbili doctor` 检测环境
 
 ## 目录结构
 
@@ -45,6 +46,8 @@ MusicalBILI/
 │   ├── cli.py           # typer 命令 + textual 交互
 │   └── web.py           # FastAPI（二期）
 ├── tests/
+├── setup.ps1        # Windows 一键部署（venv + 依赖，可选装 ffmpeg）
+├── setup.sh         # Linux/macOS 一键部署
 └── README.md
 ```
 
@@ -99,8 +102,15 @@ MusicalBILI/
 | B站风控 -412 | Wbi 签名 + buvid3 cookie + 合理 UA/Referer；先 GET 首页拿 cookie；失败重试+退避 |
 | 网易云/QQ 逆向接口变动 | 接口层抽象，多源降级；LRCLIB 为主避免主链路依赖逆向 |
 | whisper 对歌唱识别不准 | 调参（关 VAD、CJK 阈值、必要时分离人声）；仅当快速校准无法收敛时启用 |
-| ffmpeg 缺失 | mp3/flac 转码前检测，缺失时降级 m4a 并提示 |
+| ffmpeg 缺失 | ffmpeg 为可选 extra（imageio-ffmpeg 内嵌，PyPI 拉取不经 GitHub）；查找链 config→系统PATH→内置；缺失仅 mp3/flac 报错并给出安装指引，m4a 不受影响 |
 | 高音质需会员 | 未登录/VIP 自动降级到可用最高音质，README 说明 |
+
+## 部署
+
+- **轻量（仅 m4a）**：`python -m venv .venv` + `pip install -e .`，无 ffmpeg 依赖。
+- **完整（mp3/flac）**：`pip install -e ".[ffmpeg]"`，imageio-ffmpeg 从 PyPI（国内可用清华镜像）拉取 ~60MB 静态 ffmpeg 到 venv，装完即离线可用。
+- `setup.ps1` / `setup.sh`：一键完成 venv + 依赖，`--with-ffmpeg` 开关加装完整模式。
+- `musicalbili doctor`：检测 Python / ffmpeg（config→系统PATH→内置）/ 配置目录，输出修复指引。
 
 ## 里程碑
 
