@@ -35,6 +35,7 @@ class Config:
         self.ua: str = DEFAULT_UA
         self.filename_template: str = "{artist} - {title}.{ext}"
         self.lyric_sources: list[str] = ["lrclib", "netease", "bilibili"]
+        self.translation_enabled: bool = True
         self.align_enabled: bool = True
         self.whisper_model: str = "small"
         self.whisper_language: str = "zh"

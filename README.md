@@ -63,6 +63,7 @@ musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
   "proxy": "",
   "ffmpeg_path": "",
   "lyric_sources": ["lrclib", "netease", "bilibili"],
+  "translation_enabled": true,
   "align_enabled": true,
   "whisper_model": "small",
   "whisper_language": "zh",
@@ -75,6 +76,7 @@ musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
 - `proxy`：需要代理访问 B 站时填写。
 - `ffmpeg_path`：显式指定系统 ffmpeg，优先于内嵌版本。
 - `lyric_sources`：歌词源降级顺序。
+- `translation_enabled`：外文歌自动配中文译文（网易云 tlyric 双语合并，默认开）。
 - `whisper_model`：whisper 模型名（`tiny/base/small/medium/large-v3-turbo`）或本地目录路径（推荐 ModelScope 下载后填路径）。
 - `whisper_language`：ASR 语言兜底（自动检测失败时用，默认 `zh`）。
 - `vocal_separate`：是否 Demucs 人声分离（需 `.[separate]`，混音重伴奏歌更准）。

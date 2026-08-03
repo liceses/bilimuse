@@ -59,11 +59,15 @@ def render_lrc(lines: list[tuple[float, str]]) -> str:
 
 
 def clean_netease(text: str) -> str:
-    """去掉网易云 LRC 的作曲/编曲/制作人等元数据头行与空行。"""
+    """去掉网易云 LRC 的作曲/编曲元数据头、空内容行、以及无时间戳的元数据行（[by:/[al:]/[ti:] 等）。"""
     kept = []
     for line in text.splitlines():
         content = _LRC_TIME_RE.sub("", line).strip()
-        if not content or _META_HEADER_RE.match(content):
+        if not content:
+            continue
+        if not _LRC_TIME_RE.search(line) and not _OFFSET_RE.match(line.strip()):
+            continue
+        if _META_HEADER_RE.match(content):
             continue
         kept.append(line)
     return "\n".join(kept)
@@ -82,11 +86,30 @@ def merge_translation(text: str, tlyric: str) -> str:
     merged: list[tuple[float, str]] = []
     for t, tx in orig:
         merged.append((t, tx))
-        for tt, trans in tmap.items():
+        for tt, trans_text in tmap.items():
             if tt not in used and abs(tt - t) <= 0.5:
-                merged.append((tt, trans))
+                merged.append((tt, trans_text))
                 used.add(tt)
                 break
+    return render_lrc(merged)
+
+
+def merge_translation_after(text: str, tlyric: str) -> str:
+    """校准后合并：译文按行序跟在原文行后（沿用原文行的时间戳）。
+
+    校准可能整体变换原文时间戳，译文时间戳不再匹配，改用行序配对。
+    """
+    orig = parse_lrc(text)
+    trans = parse_lrc(tlyric)
+    if not trans:
+        return text
+    merged: list[tuple[float, str]] = []
+    ti = 0
+    for t, tx in orig:
+        merged.append((t, tx))
+        if ti < len(trans):
+            merged.append((t, trans[ti][1]))
+            ti += 1
     return render_lrc(merged)
 
 
@@ -96,7 +119,8 @@ def plain_lines(text: str) -> str:
 
 
 async def fetch_lyrics(cfg: Config, meta: SongMeta | None, query: str, bvid: str, cid: int) -> Lyric | None:
-    """按配置源顺序降级获取歌词。"""
+    """按配置源顺序降级获取歌词；外文歌追加网易云双语增强。"""
+    lyric: Lyric | None = None
     for source in cfg.lyric_sources:
         try:
             if source == "lrclib":
@@ -110,8 +134,17 @@ async def fetch_lyrics(cfg: Config, meta: SongMeta | None, query: str, bvid: str
         except Exception:  # noqa: BLE001, S112 - 单源失败继续降级
             continue
         if lyric:
-            return lyric
-    return None
+            break
+    if lyric and cfg.translation_enabled and lyric.source != "netease":
+        lang = detect_lyric_language(lyric.text)
+        if lang and lang != "zh":
+            try:
+                bilingual = await _from_netease_bilingual(cfg, meta, query)
+            except Exception:  # noqa: BLE001 - 译文增强失败不阻断
+                bilingual = None
+            if bilingual:
+                return bilingual
+    return lyric
 
 
 async def _from_lrclib(cfg: Config, meta: SongMeta | None, query: str) -> Lyric | None:
@@ -146,20 +179,41 @@ def _from_lrclib_data(data: dict) -> Lyric | None:
     return Lyric(source="lrclib", text=clean_lrc(text))
 
 
+async def _netease_song_id(netease, meta: SongMeta | None, query: str):
+    """反查网易云歌曲 id：meta 已带则直接用，否则搜索+匹配。"""
+    if meta and meta.source == "netease" and meta.id:
+        return meta.id
+    songs = await netease.search(query, limit=10)
+    song = pick_best(songs, query) if songs else None
+    return song.id if song else None
+
+
 async def _from_netease(cfg: Config, meta: SongMeta | None, query: str) -> Lyric | None:
     from ..providers.meta import NeteaseMeta
 
     async with NeteaseMeta(cfg) as netease:
-        song_id = meta.id if (meta and meta.source == "netease") else None
-        if not song_id:
-            songs = await netease.search(query, limit=10)
-            song = pick_best(songs, query) if songs else None
-            song_id = song.id if song else None
+        song_id = await _netease_song_id(netease, meta, query)
         if not song_id:
             return None
         lrc_text, tlyric = await netease.get_lyric(song_id)
     lrc_text = clean_netease(lrc_text)
     if not lrc_text.strip():
+        return None
+    return Lyric(source="netease", text=lrc_text, tlyric=clean_netease(tlyric))
+
+
+async def _from_netease_bilingual(cfg: Config, meta: SongMeta | None, query: str) -> Lyric | None:
+    """网易云双语对：返回原始 lrc + tlyric（合并由调用方统一 merge_translation）。"""
+    from ..providers.meta import NeteaseMeta
+
+    async with NeteaseMeta(cfg) as netease:
+        song_id = await _netease_song_id(netease, meta, query)
+        if not song_id:
+            return None
+        lrc_text, tlyric = await netease.get_lyric(song_id)
+    lrc_text = clean_netease(lrc_text)
+    tlyric = clean_netease(tlyric)
+    if not lrc_text.strip() or not tlyric.strip():
         return None
     return Lyric(source="netease", text=lrc_text, tlyric=tlyric)
 

@@ -1,11 +1,16 @@
 """M4 单元测试：LRC 解析/渲染/清理/翻译合并 + 快速校准。"""
 
-from musicalbili.models import Lyric
-from musicalbili.services.aligner import _apply_alignment, _linear_fit, calibrate_quick
+import asyncio
+
+import musicalbili.services.lyric as lym
+from musicalbili.config import Config
+from musicalbili.models import Lyric, SongMeta
+from musicalbili.services.aligner import _apply_alignment, _linear_fit, _robust_fit, calibrate_quick
 from musicalbili.services.lyric import (
     clean_netease,
     detect_lyric_language,
     merge_translation,
+    merge_translation_after,
     parse_lrc,
     plain_lines,
     render_lrc,
@@ -35,6 +40,14 @@ def test_clean_netease_header():
     cleaned = clean_netease(text)
     assert "作词" not in cleaned
     assert "如果那两个字" in cleaned
+
+
+def test_clean_netease_by_line():
+    text = "[by:我喜欢去尸体超市]\n[00:20.54]第一次去卢浮宫时\n[offset:+500]\n"
+    cleaned = clean_netease(text)
+    assert "by:" not in cleaned
+    assert "第一次去卢浮宫时" in cleaned
+    assert "offset" in cleaned
 
 
 def test_merge_translation():
@@ -88,6 +101,23 @@ def test_linear_fit_degenerate():
     assert a == 1.0 and abs(b - 4.0) < 1e-6
 
 
+def test_robust_fit_pure_shift_with_outlier():
+    points = [(10, 18), (20, 28), (30, 38), (40, 48), (50, 90)]
+    a, b = _robust_fit(points)
+    assert abs(a - 1.0) < 1e-6 and abs(b - 8.0) < 1e-6
+
+
+def test_merge_translation_after():
+    orig = "[00:01.00]Hello\n[00:02.00]World\n[00:03.00]Extra\n"
+    trans = "[99:00.00]你好\n[99:00.00]世界\n"
+    merged = merge_translation_after(orig, trans)
+    lines = parse_lrc(merged)
+    texts = [tx for _, tx in lines]
+    assert texts == ["Hello", "你好", "World", "世界", "Extra"]
+    assert lines[1][0] == 1.0  # 译文沿用原文时间戳
+    assert merge_translation_after(orig, "") == orig
+
+
 def _mk_json(matched_lines):
     return [{"line": ln, "start": t, "matched": True} for t, ln in matched_lines]
 
@@ -115,3 +145,67 @@ def test_apply_alignment_low_match():
     data = _mk_json([(11, "a")])
     method, text, warning = _apply_alignment(src, data)
     assert method == "" and text is None and "匹配率低" in warning
+
+
+_LRC = "[00:20.54]初めてのルーブルは\n[00:22.55]なんてことは無かったわ\n"
+_TLY = "[00:20.54]第一次去卢浮宫时\n[00:22.55]并没有什么特别的感觉\n"
+
+
+class _FakeNetease:
+    def __init__(self, cfg):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return None
+
+    async def search(self, query, limit=10):
+        return [SongMeta(source="netease", id=1, name="One Last Kiss", artists=["宇多田ヒカル"])]
+
+    async def get_lyric(self, song_id):
+        return _LRC, _TLY
+
+
+def test_from_netease_bilingual(monkeypatch):
+    monkeypatch.setattr("musicalbili.providers.meta.NeteaseMeta", _FakeNetease)
+    lyric = asyncio.run(lym._from_netease_bilingual(Config(), None, "One Last Kiss"))
+    assert lyric is not None and lyric.source == "netease"
+    texts = [tx for _, tx in parse_lrc(lyric.text)]
+    assert any(any("\u3040" <= c <= "\u30ff" for c in tx) for tx in texts)
+    ttexts = [tx for _, tx in parse_lrc(lyric.tlyric)]
+    assert any(any("\u4e00" <= c <= "\u9fff" for c in tx) for tx in ttexts)
+    merged = merge_translation(lyric.text, lyric.tlyric)
+    mtexts = [tx for _, tx in parse_lrc(merged)]
+    assert any(any("\u4e00" <= c <= "\u9fff" for c in tx) for tx in mtexts)
+
+
+def test_fetch_lyrics_enrichment(monkeypatch):
+    async def fake_lrclib(cfg, meta, query):
+        return Lyric(source="lrclib", text="[00:01.00]初めてのルーブルは\n")
+
+    async def fake_bilingual(cfg, meta, query):
+        return Lyric(source="netease", text="[00:01.00]初めてのルーブルは\n[00:01.00]第一次去卢浮宫时\n")
+
+    monkeypatch.setattr(lym, "_from_lrclib", fake_lrclib)
+    monkeypatch.setattr(lym, "_from_netease_bilingual", fake_bilingual)
+    cfg = Config()
+    cfg.lyric_sources = ["lrclib"]
+    lyric = asyncio.run(lym.fetch_lyrics(cfg, None, "x", "BV", 0))
+    assert lyric is not None and lyric.source == "netease" and "第一次去卢浮宫时" in lyric.text
+
+
+def test_fetch_lyrics_no_enrich_chinese(monkeypatch):
+    async def fake_lrclib(cfg, meta, query):
+        return Lyric(source="lrclib", text="[00:01.00]窗外的麻雀\n")
+
+    async def fake_bilingual(cfg, meta, query):
+        raise AssertionError("中文歌不应触发译文增强")
+
+    monkeypatch.setattr(lym, "_from_lrclib", fake_lrclib)
+    monkeypatch.setattr(lym, "_from_netease_bilingual", fake_bilingual)
+    cfg = Config()
+    cfg.lyric_sources = ["lrclib"]
+    lyric = asyncio.run(lym.fetch_lyrics(cfg, None, "x", "BV", 0))
+    assert lyric is not None and lyric.source == "lrclib"

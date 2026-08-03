@@ -42,4 +42,6 @@
 | align 置信度回退 | `-f json --interpolate` 取 matched 标记；匹配率<50% 回退原歌词，不盲目缩放 | `musicalbili/services/aligner.py` |
 | 语言自动检测 | 假名→ja 决定性；咪咕 tags 网络信号；`whisper_language` 兜底。勿硬编码 zh | `aligner.py` / `providers/meta.py` |
 | 锚点线性拟合 | matched<50% 但锚点≥3 时最小二乘 `aligned=a·source+b` 整体变换（治前留白） | `aligner.py:_apply_alignment` |
+| 稳健拟合 | 锚点偏移 MAD≤3s 判纯平移（中位数），否则 LSQ；防离群点带偏 | `aligner.py:_robust_fit` |
+| 外文歌译文 | 主源非netease，detect非zh → 网易云双语对替换；译文按行序合并（校准后时间戳不匹配） | `lyric.py:_from_netease_bilingual`/`merge_translation_after` |
 | `「」`/`《》`歌名提取 | `split_query` 优先括号内歌名（日式引号），再 ` - ` 分隔 | `musicalbili/services/tagger.py` |

@@ -95,6 +95,22 @@ def _linear_fit(points: list[tuple[float, float]]) -> tuple[float, float]:
     return a, my - a * mx
 
 
+def _robust_fit(points: list[tuple[float, float]]) -> tuple[float, float]:
+    """锚点拟合：偏移近一致（MAD≤3s）→ 纯平移（a=1，中位数偏移）；否则 LSQ。
+
+    官方 MV 前留白是纯平移场景，LSQ 会被离群锚点带偏，故先判 MAD。
+    """
+    deltas = sorted(y - x for x, y in points)
+    n = len(deltas)
+    if not n:
+        return 1.0, 0.0
+    med = deltas[n // 2]
+    mad = sorted(abs(d - med) for d in deltas)[n // 2]
+    if mad <= 3.0:
+        return 1.0, med
+    return _linear_fit(points)
+
+
 def _apply_alignment(lyric: Lyric, data: list[dict]) -> tuple[str, str | None, str]:
     """根据 lyric-align json 决定采用策略。
 
@@ -121,7 +137,7 @@ def _apply_alignment(lyric: Lyric, data: list[dict]) -> tuple[str, str | None, s
     if matched >= max(2, src_count * 0.5):
         return "align", render_lrc(lines), ""
     if len(anchors) >= 3:
-        a, b = _linear_fit(anchors)
+        a, b = _robust_fit(anchors)
         new_text = render_lrc([(max(0.0, a * t + b), tx) for t, tx in src])
         return "align_offset", new_text, f"基于 {len(anchors)} 个锚点全局对齐"
     return "", None, f"lyric-align 匹配率低（{matched}/{max(src_count, len(data))} 行），保留原歌词"

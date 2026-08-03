@@ -96,6 +96,28 @@
 - 七里香回归：detect zh → `align` 完整 32 行 ✅
 - 单测：`detect_lyric_language`（ja/zh/ko/ru/en）、`_linear_fit`（偏移/缩放/退化）、`_apply_alignment` 三分支 ✅（36 passed）
 
+## 外文歌译文增强（网易云）
+
+### 问题
+
+- LRCLIB（主源）无译文；网易云有 tlyric 但仅当其为主源才合并。
+- **跨源按时间戳合并失败**：LRCLIB 与网易云时间戳差 >0.5s（One Last Kiss 首句 21.84 vs 20.54）→ 按时间配对全落空。
+- **校准后时间戳被变换**：align_offset 整体平移原文时间戳后，译文（未变换）按时间合并失败。
+
+### 方案
+
+1. **外文歌译文增强**：主歌词非 netease 且 `detect_lyric_language != zh` 时，`_from_netease_bilingual` 反查网易云 `(lrc, tlyric)`（同源时间戳对齐）替换主歌词 → `services/lyric.py:fetch_lyrics`。
+   - 中文歌零额外请求；网易云无版权/无译文 → 保留原歌词（尽力而为）。
+2. **`clean_netease` 剥 `[by:...]` 等无时间戳元数据行**（实测 tlyric 有 `[by:我喜欢去尸体超市]`）。
+3. **`_robust_fit` 稳健锚点拟合**：锚点偏移 MAD≤3s → 判纯平移（a=1，中位数偏移），否则 LSQ。官方 MV 前留白是纯平移，LSQ 被离群锚点带偏（实测首句被拉到 62.9s）。
+4. **`merge_translation_after` 行序合并**：译文按行序跟在原文后（沿用原文行时间戳），校准后译文不再按时间匹配。`merge_translation`（时间戳版）保留。
+
+### 验证
+
+- One Last Kiss：网易云双语增强 → `.lrc` 75 行（30 日文 + 35 中文逐行交替），首句 `[00:27.98]初めてのルーブルは / [00:27.98]第一次去卢浮宫时`（前留白抵消，时间正确），内嵌歌词一致 ✅
+- 七里香回归：中文不触发增强，LRCLIB 优先不变 ✅
+- 单测：`_robust_fit`（纯平移含离群点）、`merge_translation_after`、`[by:]` 清理、双语反查、增强触发/中文不触发 ✅（42 passed）
+
 ## 验证
 
 - 七里香端到端（m4a，align 开启）：下载 → migu 元数据「周杰伦 - 七里香」→ lrclib 歌词 → **lyric-align 对齐 28 行**，首 `[00:30.00]窗外的麻雀 在電線桿上多嘴`，末 `[04:25.96]...唯一想要的瞭解`（4:58 视频留器乐尾）✅
