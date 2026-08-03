@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 项目运行时产物
+downloads/
+*.m4s
+*.mp3
+*.flac
+*.lrc
+*.jpg
+*.jpeg
+*.png
+
+# 环境/配置
+.env
+*.db
+cookies.json
+
+# 编辑器/系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
