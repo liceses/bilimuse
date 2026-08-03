@@ -104,7 +104,7 @@ MusicalBILI/
 |---|---|
 | B站搜索风控（匿名 v_voucher / -412） | **扫码登录降风控**（`musicalbili login` 存 SESSDATA）；搜索**双端点自动降级**：登录态优先 wbi → 失败回退旧版；Wbi 签名 + buvid3 + 合理 UA/Referer；失败重试+退避 |
 | 网易云逆向接口变动 | **明文旧版 → weapi 双端点自动降级**（weapi 为官方网页主链路，长期稳定）；接口层抽象，多源降级；LRCLIB 为歌词主源避免主链路依赖逆向 |
-| whisper 对歌唱识别不准 | 调参（关 VAD、CJK 阈值、必要时分离人声）；仅当快速校准无法收敛时启用 |
+| whisper 对歌唱识别不准 | 语言自动检测（假名/汉字/咪咕tags）勿硬编码 zh；调参（关 VAD、CJK 阈值、必要时人声分离）；锚点线性拟合回退；仅失配时启用 |
 | ffmpeg 缺失 | ffmpeg 为可选 extra（imageio-ffmpeg 内嵌，PyPI 拉取不经 GitHub）；查找链 config→系统PATH→内置；缺失仅 mp3/flac 报错并给出安装指引，m4a 不受影响 |
 | 高音质需会员 | 未登录/VIP 自动降级到可用最高音质，README 说明 |
 | 接口失效（长期） | 逆向接口无法"确保"长期可用，设计为**抗失效**：多源冗余（咪咕+网易云）、每源多端点自动降级、`doctor --network` 逐源探测告警、接口适配集中并注释参考文档 |
@@ -113,6 +113,7 @@ MusicalBILI/
 
 - **轻量（仅 m4a）**：`python -m venv .venv` + `pip install -e .`，无 ffmpeg 依赖。
 - **完整（mp3/flac）**：`pip install -e ".[ffmpeg]"`，imageio-ffmpeg 从 PyPI（国内可用清华镜像）拉取 ~60MB 静态 ffmpeg 到 venv，装完即离线可用。
+- **歌词精确校准**：`pip install -e ".[align]"` 装 lyric-align（faster-whisper）；模型国内从 ModelScope 下载后 `whisper_model` 指向本地路径。
 - `setup.ps1` / `setup.sh`：一键完成 venv + 依赖，`--with-ffmpeg` 开关加装完整模式。
 - `musicalbili doctor`：检测 Python / ffmpeg（config→系统PATH→内置）/ 配置目录，输出修复指引。
 - **登录降风控**：`musicalbili login` 手机扫码登录 B 站（存 SESSDATA），大幅降低搜索风控、提升音质、解锁 AI 字幕；`logout` 清除。

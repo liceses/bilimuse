@@ -150,6 +150,14 @@ class NeteaseMeta(_BaseMeta):
             url = await self.get_cover_url(song.id)
         return await self._download_image(url)
 
+    async def get_lyric(self, song_id: int) -> tuple[str, str]:
+        """weapi 取歌词，返回 (lrc, tlyric)。"""
+        payload = {"id": song_id, "lv": -1, "kv": -1, "tv": -1, "csrf_token": ""}
+        r = await self.client.post(f"{NETEASE_API}/weapi/song/lyric", data=_weapi_params(payload))
+        r.raise_for_status()
+        j = r.json()
+        return (j.get("lrc") or {}).get("lyric") or "", (j.get("tlyric") or {}).get("lyric") or ""
+
     async def get_cover_url(self, song_id: int) -> str:
         try:
             url = await self._cover_legacy(song_id)
@@ -182,6 +190,16 @@ class NeteaseMeta(_BaseMeta):
         return ""
 
 
+_LANG_TAGS = {"日语": "ja", "国语": "zh", "英语": "en", "韩语": "ko", "粤语": "yue", "泰语": "th"}
+
+
+def _lang_from_tags(tags: list) -> str:
+    for tag in tags or []:
+        if tag in _LANG_TAGS:
+            return _LANG_TAGS[tag]
+    return ""
+
+
 class MiguMeta(_BaseMeta):
     """咪咕音乐（MIGUM2.0 明文接口，曲库含周杰伦）。"""
 
@@ -212,6 +230,7 @@ class MiguMeta(_BaseMeta):
                     artists=[x.get("name", "") for x in (s.get("singers") or []) if x.get("name")],
                     album=(s.get("albums") or [{}])[0].get("name", "") or "",
                     cover=_cover_url(s),
+                    language=_lang_from_tags(s.get("tags")),
                 )
             )
         return songs

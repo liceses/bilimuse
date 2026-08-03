@@ -13,9 +13,11 @@ from .config import Config, default_config_dir
 from .db import DownloadDB
 from .providers.bilibili import BilibiliClient, BilibiliError
 from .providers.meta import MiguMeta, NeteaseMeta
+from .services.aligner import align_available, calibrate
 from .services.auth import LoginError, bili_login
 from .services.download import download_song
-from .services.tagger import auto_tag
+from .services.lyric import fetch_lyrics, merge_translation, placeholder_lyric
+from .services.tagger import auto_tag, tag_file
 
 app = typer.Typer(add_completion=False)
 
@@ -66,10 +68,12 @@ def download(
     page: int = typer.Option(1, "--page", "-p", min=1, help="分 P 序号（默认 1）"),
     out_format: str = typer.Option("", "--format", "-f", help="m4a/mp3/flac（默认用配置）"),
     no_tag: bool = typer.Option(False, "--no-tag", help="下载后不自动打标签"),
+    no_lyric: bool = typer.Option(False, "--no-lyric", help="下载后不自动配歌词"),
+    force_align: bool = typer.Option(False, "--align", help="歌词强制 lyric-align(whisper) 校准"),
     dir: Path = typer.Option(None, "--dir", "-d", help="下载目录（覆盖配置）"),
     config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
 ) -> None:
-    """下载单个音频，自动反查元数据打标签并记录历史。"""
+    """下载单个音频：自动反查元数据打标签、自动配歌词并校准。"""
     cfg = Config.load(config)
     if dir is not None:
         cfg.download_dir = dir
@@ -77,18 +81,21 @@ def download(
         cfg.format = out_format
     db = DownloadDB()
     try:
-        path, meta = asyncio.run(_download(cfg, db, bvid, page, no_tag))
+        path, meta, lyric = asyncio.run(_download(cfg, db, bvid, page, no_tag, no_lyric, force_align))
     except (BilibiliError, RuntimeError) as e:
         typer.echo(f"下载失败: {e}", err=True)
         raise typer.Exit(code=1) from e
-    label = f"{meta.artist_str} - {meta.name}" if meta else str(path)
     typer.echo(f"\n已保存: {path}")
     if meta:
-        typer.echo(f"标签: {label}")
+        typer.echo(f"标签: {meta.artist_str} - {meta.name}")
+    if lyric:
+        typer.echo(f"歌词: {lyric.source}（{lyric.calib_method}）")
     db.close()
 
 
-async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: bool) -> tuple:
+async def _download(
+    cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: bool, no_lyric: bool, force_align: bool
+) -> tuple:
     async with BilibiliClient(cfg) as client:
         detail = await client.get_detail(bvid)
         pages = detail.pages or await client.get_pagelist(bvid)
@@ -129,6 +136,11 @@ async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: b
             typer.echo(f"匹配来源: {meta.source}")
         else:
             typer.echo("未匹配到曲目，保留原始命名", err=True)
+
+    lyric = None
+    if not no_lyric:
+        lyric = await _lyric_and_embed(cfg, path, meta, title, bvid, cid, force_align)
+
     db.add(
         bvid=bvid,
         cid=cid,
@@ -137,7 +149,33 @@ async def _download(cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: b
         format=path.suffix.lstrip("."),
         file_path=str(path),
     )
-    return path, meta
+    return path, meta, lyric
+
+
+async def _lyric_and_embed(
+    cfg: Config, path: Path, meta, title: str, bvid: str, cid: int, force_align: bool
+):
+    """拿歌词 → 校准 → 写 .lrc 侧车 + 内嵌标签。"""
+    if force_align and not align_available():
+        typer.echo("--align 需要 lyric-align，请装 `pip install -e '.[align]'`", err=True)
+    typer.echo("获取歌词...")
+    lyric = await fetch_lyrics(cfg, meta, title, bvid, cid)
+    sidecar = path.with_suffix(".lrc")
+    if lyric is None:
+        lyric = placeholder_lyric()
+        sidecar.write_text(lyric.text, encoding="utf-8")
+        typer.echo("未找到歌词，已生成纯音乐占位 .lrc", err=True)
+        return lyric
+    lyric = await calibrate(path, lyric, cfg, force_align, meta_language=meta.language if meta else "")
+    final_text = merge_translation(lyric.text, lyric.tlyric) if lyric.source != "placeholder" else lyric.text
+    sidecar.write_text(final_text, encoding="utf-8")
+    typer.echo(f"歌词: {lyric.source} → .lrc 已写入")
+    if meta:
+        tag_file(path, meta, lyrics=final_text)
+        typer.echo("歌词已内嵌标签")
+    if lyric.warning:
+        typer.echo(f"校准提示: {lyric.warning}", err=True)
+    return lyric
 
 
 @app.command()
@@ -238,6 +276,11 @@ def doctor(
     count = len(db.list())
     db.close()
     typer.echo(f"下载历史: {count} 条")
+    typer.echo(
+        f"歌词校准: {'lyric-align 可用（whisper=' + cfg.whisper_model + '）' if align_available() else '未装 lyric-align，装 `pip install -e .[align]` 可启用精确校准'}"
+    )
+    if cfg.hf_mirror:
+        typer.echo(f"HF 镜像: {cfg.hf_mirror}")
 
     if network:
         typer.echo("-- 接口连通性探测 --")

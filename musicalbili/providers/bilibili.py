@@ -215,6 +215,26 @@ class BilibiliClient:
             return max(play.dash_audio, key=lambda s: s.bandwidth)
         raise BilibiliError("无可用的音频流")
 
+    async def get_subtitles(self, bvid: str, cid: int) -> list[tuple[float, str]]:
+        """拿 B 站 AI/UP 字幕当歌词兜底。需登录；未登录返回空。"""
+        data = await self._get("x/player/wbi/v2", {"bvid": bvid, "cid": cid}, wbi=True)
+        subs = (data.get("subtitle") or {}).get("subtitles") or []
+        if not subs:
+            return []
+        pick = next((s for s in subs if (s.get("lan") or "").startswith("ai-")), subs[0])
+        url = _abs(pick.get("subtitle_url") or "")
+        if not url:
+            return []
+        r = await self.client.get(url, headers={"Referer": "https://www.bilibili.com/"})
+        if r.status_code != 200:
+            return []
+        lines: list[tuple[float, str]] = []
+        for item in (r.json().get("body") or []):
+            content = (item.get("content") or "").strip()
+            if content:
+                lines.append((float(item.get("from") or 0.0), content))
+        return lines
+
 
 def _abs(url: str) -> str:
     return f"https:{url}" if url.startswith("//") else url

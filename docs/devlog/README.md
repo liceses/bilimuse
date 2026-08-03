@@ -11,6 +11,7 @@
 | 2026-08-03 | [下载与转码](2026-08-03-download.md) | M2 | DASH 下载、m4a直拷/mp3-flac转码、命名、SQLite 去重 |
 | 2026-08-03 | [元数据反查与打标签](2026-08-03-metadata-tagger.md) | M3 | 咪咕/网易云多源反查、mutagen 打标签、webp封面转换 |
 | 2026-08-03 | [扫码登录与 API 加固](2026-08-03-login-hardening.md) | M3补 | B站扫码登录降风控、搜索双端点、网易云 weapi 兜底 |
+| 2026-08-03 | [歌词获取与校准](2026-08-03-lyric-align.md) | M4 | LRCLIB/网易云/B站字幕多源降级、快速校准、lyric-align 强制对齐 |
 
 ## 技术沉淀速查表
 
@@ -34,3 +35,11 @@
 | B站搜索双端点 | 登录态优先 wbi，`result` 空(v_voucher)自动回退旧版 | `musicalbili/providers/bilibili.py:119` |
 | 网易云 weapi | 端点用 `weapi/search/get/web`（cloudsearch 已 50000005）；v3 详情用 `al`/`ar` 键 | `musicalbili/providers/meta.py:119` |
 | 登录降风控 | 匿名流量是 B 站风控重点，SESSDATA 后走 wbi 主链路 | 风险表 |
+| fMP4 时长 | mutagen 读分片 MP4 时长为 0，用 ffmpeg `-i -f null -` 解析 Duration | `musicalbili/services/aligner.py:38` |
+| whisper 模型国内下载 | hf-mirror 极慢，ModelScope 镜像官方 faster-whisper 快；`whisper_model` 支持本地路径 | `aligner.py:107` |
+| lyric-align 编码 | Windows GBK 读崩 UTF-8 歌词 → 子进程 `PYTHONUTF8=1` | `aligner.py:111` |
+| LRC 清理 | 网易云剥作曲/编曲头；LRCLIB 剥空行/live标题行；翻译合并 | `musicalbili/services/lyric.py` |
+| align 置信度回退 | `-f json --interpolate` 取 matched 标记；匹配率<50% 回退原歌词，不盲目缩放 | `musicalbili/services/aligner.py` |
+| 语言自动检测 | 假名→ja 决定性；咪咕 tags 网络信号；`whisper_language` 兜底。勿硬编码 zh | `aligner.py` / `providers/meta.py` |
+| 锚点线性拟合 | matched<50% 但锚点≥3 时最小二乘 `aligned=a·source+b` 整体变换（治前留白） | `aligner.py:_apply_alignment` |
+| `「」`/`《》`歌名提取 | `split_query` 优先括号内歌名（日式引号），再 ` - ` 分隔 | `musicalbili/services/tagger.py` |

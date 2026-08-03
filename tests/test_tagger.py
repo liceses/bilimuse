@@ -36,6 +36,8 @@ def test_split_query():
     assert split_query("周杰伦 - 晴天") == ("周杰伦", "晴天")
     assert split_query("晴天") == ("", "晴天")
     assert split_query("【4K修复】周杰伦 - 晴天MV 2160P修复版") == ("周杰伦", "晴天")
+    assert split_query("【4K60FPS】周杰伦《七里香》封神之作！华语乐坛最美的一首歌") == ("周杰伦", "七里香")
+    assert split_query("【官方MV】宇多田ヒカル「One Last Kiss」（电影主题曲）-宇多田光") == ("宇多田ヒカル", "One Last Kiss")
 
 
 def test_pick_best_artist_penalty():

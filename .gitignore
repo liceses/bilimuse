@@ -23,6 +23,9 @@ downloads/
 *.db
 cookies.json
 
+# 本地 whisper 模型
+models/
+
 # 编辑器/系统
 .idea/
 .vscode/

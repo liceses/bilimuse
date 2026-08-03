@@ -16,6 +16,7 @@ from .download import render_filename
 
 _BRACKETS = re.compile(r"[【\[][^】\]]*[】\]]")
 _PARENS = re.compile(r"[（(][^）)]*[)）]")
+_STRIP_CHARS = " \t，,。！!：: -–"
 _TRAILING_TOKENS = (
     "高清修复版", "修复版", "完整版", "剪辑版", "现场版", "LIVE版", "live版",
     "MV", "PV", "mv", "pv", "翻唱", "现场", "Live", "live", "修复", "高清修复",
@@ -40,11 +41,20 @@ def clean_title(title: str) -> str:
 
 
 def split_query(query: str) -> tuple[str, str]:
-    """把查询拆成 (歌手, 歌名)。支持 '歌手 - 歌名' 与纯歌名。"""
+    """把查询拆成 (歌手, 歌名)。
+
+    优先提取《》/「」内歌名（周杰伦《七里香》/宇多田ヒカル「One Last Kiss」），
+    其次 '歌手 - 歌名'，最后纯歌名。
+    """
     q = clean_title(query)
+    m = re.search(r"[《「]([^》」]+)[》」]", q)
+    if m:
+        title = m.group(1)
+        artist = q[: m.start()].strip(_STRIP_CHARS)
+        return artist, title
     parts = re.split(r"\s*[-–—]\s*", q, maxsplit=1)
     if len(parts) == 2 and parts[1]:
-        return parts[0].strip(" -–"), parts[1].strip(" -–")
+        return parts[0].strip(_STRIP_CHARS), parts[1].strip(_STRIP_CHARS)
     return "", q
 
 

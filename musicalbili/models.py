@@ -70,7 +70,19 @@ class SongMeta(BaseModel):
     album: str = ""
     duration_ms: int = 0
     cover: str = ""
+    language: str = ""
 
     @property
     def artist_str(self) -> str:
         return " / ".join(self.artists) if self.artists else "Unknown"
+
+
+class Lyric(BaseModel):
+    """歌词：原文 LRC 文本 + 可选译文，来源与校准标记。"""
+
+    source: str = ""
+    text: str = ""
+    tlyric: str = ""
+    calibrated: bool = False
+    calib_method: str = ""
+    warning: str = ""

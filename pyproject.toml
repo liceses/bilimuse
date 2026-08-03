@@ -13,6 +13,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+align = [
+    "lyric-align[asr]>=0.3",
+]
+separate = [
+    "lyric-align[separate]>=0.3",
+]
 ffmpeg = [
     "imageio-ffmpeg>=0.5",
 ]

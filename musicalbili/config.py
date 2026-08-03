@@ -34,16 +34,23 @@ class Config:
         self.ffmpeg_path: str = ""
         self.ua: str = DEFAULT_UA
         self.filename_template: str = "{artist} - {title}.{ext}"
+        self.lyric_sources: list[str] = ["lrclib", "netease", "bilibili"]
+        self.align_enabled: bool = True
+        self.whisper_model: str = "small"
+        self.whisper_language: str = "zh"
+        self.vocal_separate: bool = False
+        self.hf_mirror: str = "https://hf-mirror.com"
 
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
         cfg = cls()
         path = path or default_config_dir() / "config.json"
         if path.is_file():
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
             for key, value in data.items():
                 if hasattr(cfg, key):
                     setattr(cfg, key, value)
+        cfg.download_dir = Path(cfg.download_dir)
         return cfg
 
     def save(self, path: Path | None = None) -> None:
