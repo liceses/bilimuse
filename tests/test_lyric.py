@@ -10,9 +10,10 @@ from musicalbili.services.lyric import (
     clean_netease,
     detect_lyric_language,
     merge_translation,
-    merge_translation_after,
+    pair_translation,
     parse_lrc,
     plain_lines,
+    reattach_translation,
     render_lrc,
 )
 
@@ -107,15 +108,42 @@ def test_robust_fit_pure_shift_with_outlier():
     assert abs(a - 1.0) < 1e-6 and abs(b - 8.0) < 1e-6
 
 
-def test_merge_translation_after():
-    orig = "[00:01.00]Hello\n[00:02.00]World\n[00:03.00]Extra\n"
-    trans = "[99:00.00]你好\n[99:00.00]世界\n"
-    merged = merge_translation_after(orig, trans)
+def test_pair_translation_skip_english():
+    orig = (
+        "[00:20.54]初めてのルーブルは\n"
+        "[00:22.55]なんてことは無かったわ\n"
+        "[00:24.00](Can you give me one last kiss?)\n"
+        "[00:26.00]忘れたくないこと\n"
+        "[00:28.00]Oh oh oh oh oh…\n"
+    )
+    trans = "[00:20.54]第一次去卢浮宫时\n[00:22.55]并没有什么特别的感觉\n[00:26.00]不想遗忘之事\n"
+    pairs = pair_translation(orig, trans)
+    assert pairs[0][2] == "第一次去卢浮宫时"
+    assert pairs[1][2] == "并没有什么特别的感觉"
+    assert pairs[2][2] is None  # 英文行无译文
+    assert pairs[3][2] == "不想遗忘之事"
+    assert pairs[4][2] is None  # 拟声行无译文
+
+
+def test_pair_translation_repeated_lines():
+    orig = "[00:26.00]忘れたくないこと\n[00:30.00]忘れたくないこと\n"
+    trans = "[00:26.00]不想遗忘之事\n[00:30.00]不愿遗忘之事\n"
+    pairs = pair_translation(orig, trans)
+    assert [p[2] for p in pairs] == ["不想遗忘之事", "不愿遗忘之事"]
+
+
+def test_reattach_translation():
+    orig = "[00:01.00]Hello\n[00:02.00](World)\n[00:03.00]Extra\n"
+    trans = "[00:01.00]你好\n"
+    pairs = pair_translation(orig, trans)
+    # 模拟校准：时间戳整体 +5s
+    calib = render_lrc([(t + 5.0, tx) for t, tx in parse_lrc(orig)])
+    merged = reattach_translation(calib, pairs)
     lines = parse_lrc(merged)
     texts = [tx for _, tx in lines]
-    assert texts == ["Hello", "你好", "World", "世界", "Extra"]
-    assert lines[1][0] == 1.0  # 译文沿用原文时间戳
-    assert merge_translation_after(orig, "") == orig
+    assert texts == ["Hello", "你好", "(World)", "Extra"]
+    assert abs(lines[1][0] - 6.0) < 1e-6  # 译文沿用校准后时间戳
+    assert reattach_translation(calib, pair_translation(orig, "")) == calib
 
 
 def _mk_json(matched_lines):

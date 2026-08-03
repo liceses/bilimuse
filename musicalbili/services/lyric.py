@@ -94,22 +94,40 @@ def merge_translation(text: str, tlyric: str) -> str:
     return render_lrc(merged)
 
 
-def merge_translation_after(text: str, tlyric: str) -> str:
-    """校准后合并：译文按行序跟在原文行后（沿用原文行的时间戳）。
+def pair_translation(text: str, tlyric: str) -> list[tuple[float, str, str | None]]:
+    """按时间戳(≤0.5s)把译文配对到原文行，返回 [(原文时间, 原文, 译文|None)]。
 
-    校准可能整体变换原文时间戳，译文时间戳不再匹配，改用行序配对。
+    英文/拟声等无译文行 → None；重复行用 used 集逐条分配。
     """
     orig = parse_lrc(text)
     trans = parse_lrc(tlyric)
-    if not trans:
-        return text
-    merged: list[tuple[float, str]] = []
-    ti = 0
+    tmap: dict[float, str] = {}
+    for t, tx in trans:
+        tmap.setdefault(t, tx)
+    used: set[float] = set()
+    pairs: list[tuple[float, str, str | None]] = []
     for t, tx in orig:
+        best = min(
+            ((tt, ttx) for tt, ttx in tmap.items() if tt not in used and abs(tt - t) <= 0.5),
+            key=lambda p: abs(p[0] - t),
+            default=None,
+        )
+        if best:
+            used.add(best[0])
+            pairs.append((t, tx, best[1]))
+        else:
+            pairs.append((t, tx, None))
+    return pairs
+
+
+def reattach_translation(text: str, pairs: list[tuple[float, str, str | None]]) -> str:
+    """校准后按行序把译文贴回原文行（沿用校准后时间戳）。"""
+    calib = parse_lrc(text)
+    merged: list[tuple[float, str]] = []
+    for i, (t, tx) in enumerate(calib):
         merged.append((t, tx))
-        if ti < len(trans):
-            merged.append((t, trans[ti][1]))
-            ti += 1
+        if i < len(pairs) and pairs[i][2]:
+            merged.append((t, pairs[i][2]))
     return render_lrc(merged)
 
 

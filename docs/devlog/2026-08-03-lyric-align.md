@@ -112,6 +112,21 @@
 3. **`_robust_fit` 稳健锚点拟合**：锚点偏移 MAD≤3s → 判纯平移（a=1，中位数偏移），否则 LSQ。官方 MV 前留白是纯平移，LSQ 被离群锚点带偏（实测首句被拉到 62.9s）。
 4. **`merge_translation_after` 行序合并**：译文按行序跟在原文后（沿用原文行时间戳），校准后译文不再按时间匹配。`merge_translation`（时间戳版）保留。
 
+### 踩坑：行序合并被英文行挤位（已修复）
+
+- **现象**：英文/拟声行（`(Can you give me one last kiss？)`、`Oh oh oh oh…`）拿到**下一句日文**的译文。
+- **根因**：网易云 tlyric **不翻译英文/拟声行**，译文只对应日文行；`merge_translation_after` 按行序 1:1 配对，英文行把下一句的译文挤走了。
+- **修复**：配对与校准解耦——
+  1. `pair_translation(text, tlyric)` **校准前**按时间戳(≤0.5s)配对（英文/无译文行→None，重复行用 used 集逐条分配）；
+  2. 校准 `lyric.text`（行数与顺序不变）；
+  3. `reattach_translation(calibrated, pairs)` **校准后**按行序贴回（译文沿用校准后时间戳）。
+  - 删除 `merge_translation_after` → `services/lyric.py`。
+
+### 验证（修复后）
+
+- One Last Kiss 关键片段：`(Can you give me...)`/`Oh oh oh…` **无译文**；`忘れたくないこと` 两次 → `不想遗忘之事`/`不愿遗忘之事`；`燃えるようなキスをしよう` → `来一个火热的吻吧` ✅
+- 单测：`pair_translation`（英文行 None、重复行）、`reattach_translation`（模拟变换后）✅（44 passed）
+
 ### 验证
 
 - One Last Kiss：网易云双语增强 → `.lrc` 75 行（30 日文 + 35 中文逐行交替），首句 `[00:27.98]初めてのルーブルは / [00:27.98]第一次去卢浮宫时`（前留白抵消，时间正确），内嵌歌词一致 ✅

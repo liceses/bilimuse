@@ -16,7 +16,7 @@ from .providers.meta import MiguMeta, NeteaseMeta
 from .services.aligner import align_available, calibrate
 from .services.auth import LoginError, bili_login
 from .services.download import download_song
-from .services.lyric import fetch_lyrics, merge_translation_after, placeholder_lyric
+from .services.lyric import fetch_lyrics, pair_translation, placeholder_lyric, reattach_translation
 from .services.tagger import auto_tag, tag_file
 
 app = typer.Typer(add_completion=False)
@@ -166,8 +166,9 @@ async def _lyric_and_embed(
         sidecar.write_text(lyric.text, encoding="utf-8")
         typer.echo("未找到歌词，已生成纯音乐占位 .lrc", err=True)
         return lyric
+    pairs = pair_translation(lyric.text, lyric.tlyric)
     lyric = await calibrate(path, lyric, cfg, force_align, meta_language=meta.language if meta else "")
-    final_text = merge_translation_after(lyric.text, lyric.tlyric) if lyric.source != "placeholder" else lyric.text
+    final_text = reattach_translation(lyric.text, pairs) if lyric.source != "placeholder" else lyric.text
     sidecar.write_text(final_text, encoding="utf-8")
     typer.echo(f"歌词: {lyric.source} → .lrc 已写入")
     if meta:
