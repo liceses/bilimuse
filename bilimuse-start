@@ -31,6 +31,8 @@ if [ ! -f "$PY" ]; then
   python3 -m venv "$ROOT/.venv"
   echo "安装依赖（全量: ffmpeg + align + tui + web）..."
   "$PY" -m pip install -e "$FULL" -i "$MIRROR"
+  # 默认便携模式（config/logs/db 放项目 data/）
+  touch "$ROOT/.portable"
   echo "安装完成。"
 fi
 
@@ -55,7 +57,7 @@ while true; do
     2) "$PY" -m bilimuse tui ;;
     3) "$PY" -m bilimuse web ;;
     4) read -rp "bilimuse> " c; [ -n "$c" ] && "$PY" -m bilimuse $c ;;
-    5) "$PY" -m pip install -e "$FULL" -i "$MIRROR" ;;
+    5) "$PY" -m pip install -e "$FULL" -i "$MIRROR" && touch "$ROOT/.portable" ;;
     0) exit 0 ;;
   esac
 done

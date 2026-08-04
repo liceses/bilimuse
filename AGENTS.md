@@ -5,7 +5,7 @@ BiliMuse（包名 `bilimuse`）— Bilibili 音乐下载器。差异化能力：
 ## 常用命令
 
 - 运行：`bilimuse get <歌名/歌词> --auto` / `bilimuse tui` / `bilimuse web` / `bilimuse config` / `bilimuse model list|download|set` / `bilimuse portable on|off` / `bilimuse doctor`
-- 测试：`python -m pytest tests -q`（当前 70 个）
+- 测试：`python -m pytest tests -q`（70 单元，e2e 默认排除）；E2E：`python tests/e2e/run_testset.py --config-dir tests/e2e/.runconfig`（34 用例，真实网络）；校准基准：`python tests/e2e/align_bench.py`；`pytest tests/e2e -m e2e`（Web 端）
 - Lint：`python -m ruff check bilimuse tests`
 - Windows 项目目录直接 `.\bilimuse.cmd <cmd>`；Unix `./bilimuse.sh`
 

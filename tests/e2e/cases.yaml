@@ -1,0 +1,487 @@
+# BiliMuse E2E 测试集用例定义（已实地固化标准答案）
+# expect 为机器校验标准答案；review 为人工评审项。
+# bvid 已由 2026-08-04 实测固化；同一 bvid 不同 format 由运行器按 key=bvid:fmt:align 复用缓存。
+
+cases:
+  # ============ 中文经典 ============
+  - id: C01
+    name: "周杰伦-晴天（歌名直搜）"
+    category: 中文经典
+    query: "周杰伦 晴天"
+    bvid: "BV1d4411N7zD"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "晴天"
+      album: "叶惠美"
+      duration_range: [290, 340]
+      language: zh
+      lyric_keywords: ["消失的下雨天"]
+      lyric_source_in: [lrclib, netease, bilibili]
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "歌词对齐质量"
+
+  - id: C02
+    name: "周杰伦-七里香（歌名直搜）"
+    category: 中文经典
+    query: "周杰伦 七里香"
+    bvid: "BV1qD4y1U7fs"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "七里香"
+      duration_range: [270, 320]
+      language: zh
+      lyric_keywords: ["窗外的麻雀"]
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "歌词对齐质量"
+
+  - id: C03
+    name: "周杰伦-搁浅（官方MV）"
+    category: 中文经典
+    query: "周杰伦 搁浅"
+    bvid: "BV1M4411P7gM"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "搁浅"
+      duration_range: [240, 290]
+      language: zh
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "歌词对齐质量"
+
+  - id: C04
+    name: "周杰伦-以父之名（官方MV）"
+    category: 中文经典
+    query: "周杰伦 以父之名"
+    bvid: "BV1Xx411V7mb"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "以父之名"
+      duration_range: [340, 390]
+      language: zh
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "歌词对齐质量"
+
+  - id: C05
+    name: "周杰伦-双截棍（快歌，校准难）"
+    category: 中文经典
+    query: "周杰伦 双截棍"
+    bvid: "BV1ht411J7c6"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "双截棍"
+      duration_range: [180, 230]
+      language: zh
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "快歌对齐质量"
+
+  # ============ 歌词片段反查 ============
+  - id: C06
+    name: "歌词反查-七里香（中）"
+    category: 歌词反查
+    query: "窗外的麻雀 在电线杆上多嘴"
+    bvid: "BV1qD4y1U7fs"
+    format: m4a
+    search_expect:
+      min_hits: 1
+      lyric_hit: true
+    expect:
+      artist: "周杰伦"
+      title: "七里香"
+      duration_range: [270, 320]
+      language: zh
+    review:
+      - item: "反查歌名是否准确"
+
+  - id: C07
+    name: "歌词反查-搁浅（中）"
+    category: 歌词反查
+    query: "惊觉我的双肩 落下的泪像流星的碎片"
+    bvid: "BV1M4411P7gM"
+    format: m4a
+    search_expect:
+      min_hits: 1
+      lyric_hit: true
+    expect:
+      artist: "周杰伦"
+      title: "搁浅"
+      duration_range: [240, 290]
+      language: zh
+    review:
+      - item: "反查歌名是否准确"
+
+  - id: C08
+    name: "歌词反查-Adele Hello（英）"
+    category: 歌词反查
+    query: "Hello it's me I was wondering if after all these years you'd like to meet"
+    bvid: "BV1Af421X7Kg"
+    format: m4a
+    search_expect:
+      min_hits: 1
+    expect:
+      artist: "Adele"
+      title: "Hello"
+      duration_range: [280, 330]
+      language: en
+    review:
+      - item: "反查歌名是否准确（歌名已含在 query，反查按设计跳过冗余 B 站搜索）"
+
+  - id: C09
+    name: "歌词反查-Lemon（日）"
+    category: 歌词反查
+    query: "夢ならばどれほどよかったでしょう"
+    bvid: "BV1tY411B7T9"
+    format: m4a
+    search_expect:
+      min_hits: 1
+      lyric_hit: true
+    expect:
+      artist: "米津玄師"
+      title: "Lemon"
+      duration_range: [240, 290]
+      language: ja
+    review:
+      - item: "反查歌名是否准确"
+
+  # ============ 日语 ============
+  - id: C10
+    name: "宇多田ヒカル-One Last Kiss（官方MV前留白→纯平移校准）"
+    category: 日语
+    query: "宇多田ヒカル One Last Kiss"
+    bvid: "BV1Eb4y1Q7GD"
+    format: m4a
+    expect:
+      artist: "宇多田ヒカル"
+      title: "One Last Kiss"
+      duration_range: [240, 280]
+      language: ja
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "MV 前奏留白后的对齐质量（纯平移/锚点拟合）"
+
+  - id: C11
+    name: "宇多田ヒカル-Beautiful World（同名异歌手判别）"
+    category: 日语
+    query: "宇多田ヒカル Beautiful World"
+    bvid: "BV1iLmdBiE3m"
+    format: m4a
+    expect:
+      artist: "宇多田ヒカル"
+      title: "Beautiful World"
+      duration_range: [290, 340]
+      language: ja
+    review:
+      - item: "是否命中原唱而非 Robin Thicke"
+
+  - id: C12
+    name: "日语-冷门（ヨルシカ「言って」官方MV）"
+    category: 日语
+    query: "ヨルシカ 言って"
+    bvid: "BV19x41167us"
+    format: m4a
+    expect:
+      artist: "ヨルシカ"
+      title: "言って"
+      duration_range: [220, 270]
+      language: ja
+    review:
+      - item: "冷门歌标签/歌词是否正常"
+
+  - id: C13
+    name: "日语-米津玄師 Lemon"
+    category: 日语
+    query: "米津玄師 Lemon"
+    bvid: "BV1tY411B7T9"
+    format: m4a
+    expect:
+      artist: "米津玄師"
+      title: "Lemon"
+      duration_range: [240, 290]
+      language: ja
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "歌词对齐质量"
+
+  # ============ 英文 ============
+  - id: C14
+    name: "Adele-Hello（现场）"
+    category: 英文
+    query: "Adele Hello"
+    bvid: "BV1Af421X7Kg"
+    format: m4a
+    expect:
+      artist: "Adele"
+      title: "Hello"
+      duration_range: [280, 330]
+      language: en
+      lyric_keywords: ["Hello"]
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "歌词对齐质量"
+
+  - id: C15
+    name: "英文翻唱-Let It Go（冰兔）"
+    category: 英文
+    query: "Let It Go 英文 翻唱"
+    bvid: "BV1vY411s7Mg"
+    format: m4a
+    expect:
+      title: "Let It Go"
+      duration_range: [200, 240]
+      lyric_source_in: [lrclib, netease, bilibili, placeholder]
+    review:
+      - item: "翻唱反查是否正确（标签/语言）"
+
+  - id: C16
+    name: "Imagine Dragons-Believer（快歌现场）"
+    category: 英文
+    query: "Imagine Dragons Believer"
+    bvid: "BV1SK411Q7y6"
+    format: m4a
+    expect:
+      artist: "Imagine Dragons"
+      title: "Believer"
+      duration_range: [240, 280]
+      language: en
+    review:
+      - item: "快歌对齐质量"
+
+  # ============ 粤语·韩语 ============
+  - id: C17
+    name: "陈奕迅-富士山下（粤语现场）"
+    category: 粤语
+    query: "陈奕迅 富士山下"
+    bvid: "BV1H3411C7ZJ"
+    format: m4a
+    expect:
+      artist: "陈奕迅"
+      title: "富士山下"
+      duration_range: [270, 320]
+      language: yue
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "粤语语言检测/歌词"
+
+  - id: C18
+    name: "张国荣-玻璃之情（粤语官方MV）"
+    category: 粤语
+    query: "张国荣 玻璃之情"
+    bvid: "BV1rL411X7yq"
+    format: m4a
+    expect:
+      artist: "张国荣"
+      title: "玻璃之情"
+      duration_range: [260, 310]
+      language: yue
+      lyric_source_in: [lrclib, netease, bilibili]
+    review:
+      - item: "冷门粤语反查"
+
+  - id: C19
+    name: "IU-好日子（韩语，歌词覆盖弱项）"
+    category: 韩语
+    query: "IU 好日子"
+    bvid: "BV12u411X7Qy"
+    format: m4a
+    expect:
+      duration_range: [260, 310]
+      lyric_source_in: [lrclib, netease, bilibili, placeholder]
+    review:
+      - item: "韩语语言检测/歌词（已知覆盖弱，人工确认）"
+
+  - id: C20
+    name: "IU-好日子（湖南春晚现场，韩语第二源）"
+    category: 韩语
+    query: "IU 好日子"
+    bvid: "BV1Hb411q7pN"
+    format: m4a
+    expect:
+      duration_range: [130, 180]
+      lyric_source_in: [lrclib, netease, bilibili, placeholder]
+    review:
+      - item: "韩语覆盖（人工确认）"
+
+  # ============ 格式 ============
+  - id: C21
+    name: "格式-m4a 直拷"
+    category: 格式
+    query: "周杰伦 晴天"
+    bvid: "BV1d4411N7zD"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "晴天"
+      format: m4a
+    review: []
+
+  - id: C22
+    name: "格式-mp3 转码（晴天现场，独立bvid）"
+    category: 格式
+    query: "周杰伦 晴天"
+    bvid: "BV1Yv4y1Z7km"
+    format: mp3
+    expect:
+      artist: "周杰伦"
+      title: "晴天"
+      format: mp3
+      duration_range: [240, 300]
+    review: []
+
+  - id: C23
+    name: "格式-flac（晴天原版MV，独立bvid；无VIP降级m4a）"
+    category: 格式
+    query: "周杰伦 晴天"
+    bvid: "BV1wZAizcEKP"
+    format: flac
+    expect:
+      title: "晴天"
+      format: [flac, m4a]
+      duration_range: [240, 300]
+    review:
+      - item: "flac 是否真无损（或正确降级）；反查歌手（实测命中翻唱 RyaVocal）"
+
+  # ============ 边界/异常 ============
+  - id: C24
+    name: "纯音乐-圣诞快乐劳伦斯先生"
+    category: 边界
+    query: "坂本龍一 Merry Christmas Mr.Lawrence"
+    bvid: "BV1oK411q7mp"
+    format: m4a
+    expect:
+      artist: "坂本龍一"
+      title: "Merry Christmas Mr.Lawrence"
+      duration_range: [330, 390]
+      lyric_source_in: [lrclib, netease, bilibili, placeholder]
+    review:
+      - item: "纯音乐歌词是否为占位/纯音乐标记"
+
+  - id: C25
+    name: "多P视频-选 P2（周杰伦MV合集 150P）"
+    category: 边界
+    query: "周杰伦 MV 合集"
+    bvid: "BV1du411r7AS"
+    page: 2
+    format: m4a
+    expect:
+      title: "完美主义"
+      duration_range: [220, 260]
+    review:
+      - item: "P2 是否正确下载（反查歌手实测命中 Lil Song，人工确认）"
+
+  - id: C26
+    name: "去重-二次下载跳过"
+    category: 边界
+    query: "周杰伦 以父之名 现场"
+    bvid: "BV1rw411d76c"
+    format: m4a
+    dedup: true
+    expect: {}
+    review: []
+
+  - id: C27
+    name: "文件名净化（无非法字符）"
+    category: 边界
+    query: "周杰伦 晴天"
+    bvid: "BV1d4411N7zD"
+    format: m4a
+    name_sanitized: true
+    expect:
+      artist: "周杰伦"
+      title: "晴天"
+    review: []
+
+  - id: C28
+    name: "极短片段（35s 翻唱）"
+    category: 边界
+    query: "周杰伦 晴天 片段"
+    bvid: "BV1g34y1e7JC"
+    format: m4a
+    expect:
+      duration_range: [0, 40]
+    review:
+      - item: "极短音频是否正常下载"
+
+  - id: C29
+    name: "搜索无结果-优雅报错"
+    category: 边界
+    mode: search_only
+    search_lyric_lookup: false
+    query: "asdkjghqwer12345 不存在的歌名"
+    search_expect:
+      no_results: true
+    expect: {}
+    review: []
+
+  # ============ 校准专项（gold 基准对应 G01-G05） ============
+  - id: C30
+    name: "校准-中文已同步（晴天）"
+    category: 校准专项
+    query: "周杰伦 晴天"
+    bvid: "BV1d4411N7zD"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "晴天"
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "是否快速校准（synced）即通过"
+
+  - id: C31
+    name: "校准-日文MV前奏留白（One Last Kiss 官方MV）"
+    category: 校准专项
+    query: "宇多田ヒカル One Last Kiss"
+    bvid: "BV1Eb4y1Q7GD"
+    format: m4a
+    expect:
+      artist: "宇多田ヒカル"
+      title: "One Last Kiss"
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "前奏留白是否被锚点线性拟合纠正"
+
+  - id: C32
+    name: "校准-英文 interpolate（Hello）"
+    category: 校准专项
+    query: "Adele Hello"
+    bvid: "BV1Af421X7Kg"
+    format: m4a
+    expect:
+      artist: "Adele"
+      title: "Hello"
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "英文行级对齐质量"
+
+  - id: C33
+    name: "校准-低匹配回退（以父之名 意语前白）"
+    category: 校准专项
+    query: "周杰伦 以父之名"
+    bvid: "BV1Xx411V7mb"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "以父之名"
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "低匹配时是否回退而非乱缩"
+
+  - id: C34
+    name: "校准-快歌说唱（双截棍）"
+    category: 校准专项
+    query: "周杰伦 双截棍"
+    bvid: "BV1ht411J7c6"
+    format: m4a
+    expect:
+      artist: "周杰伦"
+      title: "双截棍"
+      calib_method_in: [synced, scale, align, align_offset, source]
+    review:
+      - item: "说唱段对齐质量"

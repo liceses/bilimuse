@@ -17,6 +17,7 @@
 | 2026-08-04 | [日志 + 统一状态通道](2026-08-04-logging-status.md) | M7 | 日志文件滚动、status.emit 双写、provider 级解析状态、config/等待输入三端显示 |
 | 2026-08-04 | [便携模式](2026-08-04-portable.md) | M8 | .portable 标记/env 触发、data/ 目录、portable on/off 命令、配置迁移 |
 | 2026-08-04 | [统一入口 + 部署测试](2026-08-04-deploy-test.md) | M9 | bilimuse-start 安装/配置/使用一条龙、setup 全量档、从零部署实测 |
+| 2026-08-05 | [E2E 测试集](2026-08-05-e2e-testset.md) | M10 | 34 用例真实网络验收 + gold 校准基准、标准答案双轨、缓存复用 |
 
 ## 技术沉淀速查表
 
@@ -57,3 +58,6 @@
 | cmd 中文不乱码 | `.cmd` 存 UTF-8 无 BOM + 首行 `@echo off` 后 `chcp 65001`；PowerShell 5.1 则必须 UTF-8 **带 BOM**，机制相反 | `bilimuse-start.cmd` / `setup.ps1` |
 | 首次配置探测 | `python -c "from bilimuse.config import default_config_dir; sys.exit(...)"` + `errorlevel`，无 venv 无 python 判断直接进安装 | `bilimuse-start.cmd:17` |
 | 统一入口 | 启动器管安装/配置/菜单，命令转发 `bilimuse.cmd` 保持纯净；参数直达 `config/tui/web` 分流 | `bilimuse-start.cmd` |
+| E2E 缓存复用 | key=`bvid:fmt:align` 持久 JSON；每用例独立下载目录防同名覆盖；每轮重置 db 抗去重 | `tests/e2e/run_testset.py` |
+| 标准答案双轨 | `expect` 机器校验 + `review` 人工评审（A/B/C）；bvid 实地固化 + 成员集断言抗 B站 排序漂移 | `tests/e2e/cases.yaml` |
+| pytest 隔离 e2e | `@pytest.mark.e2e` + `addopts="-m 'not e2e'"`（引号防拆分）；conftest 显式 fixture 不污染单元 | `pyproject.toml` |

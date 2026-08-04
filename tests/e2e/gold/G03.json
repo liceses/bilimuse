@@ -1,0 +1,312 @@
+{
+  "id": "G03",
+  "name": "Adele-Hello",
+  "artist": "Adele",
+  "bvid": "BV1Af421X7Kg",
+  "cid": 1573289754,
+  "format": "m4a",
+  "language": "en",
+  "_note": "对照音频 D:\\developing\\MusicalBILI\\tests\\e2e\\dl\\C08\\Adele - Hello.m4a 听歌填写时间",
+  "lyrics": [
+    [
+      0.0,
+      "Hello, it's me"
+    ],
+    [
+      0.0,
+      "你好 是我"
+    ],
+    [
+      0.0,
+      "I was wondering if after all these years you'd like to meet"
+    ],
+    [
+      0.0,
+      "我犹豫着要不要给你来电 不确定多年后你是否还愿相见"
+    ],
+    [
+      0.0,
+      "To go over everything"
+    ],
+    [
+      0.0,
+      "愿意闲聊寒暄 细数从前"
+    ],
+    [
+      0.0,
+      "They say that time's supposed to heal ya but I ain't done much healing"
+    ],
+    [
+      0.0,
+      "人们都说时间能治愈一切 但我却似乎没有更好一点"
+    ],
+    [
+      0.0,
+      "Hello, can you hear me"
+    ],
+    [
+      0.0,
+      "嘿 你在听吗"
+    ],
+    [
+      0.0,
+      "I'm in California dreaming about who we used to be"
+    ],
+    [
+      0.0,
+      "我在加州梦见我们过去的种种美好"
+    ],
+    [
+      0.0,
+      "When we were younger and free"
+    ],
+    [
+      0.0,
+      "当时那年轻而向往自由的我们"
+    ],
+    [
+      0.0,
+      "I've forgotten how it felt before the world fell at our feet"
+    ],
+    [
+      0.0,
+      "我都快要忘了 但现实却让一切重现眼前"
+    ],
+    [
+      0.0,
+      "There's such a difference between us"
+    ],
+    [
+      0.0,
+      "我们之间的差距愈见明显"
+    ],
+    [
+      0.0,
+      "And a million miles"
+    ],
+    [
+      0.0,
+      "有如天差地别"
+    ],
+    [
+      0.0,
+      "Hello from the other side"
+    ],
+    [
+      0.0,
+      "我还是想打给你 即使相隔天边"
+    ],
+    [
+      0.0,
+      "I must've called a thousand times to tell you"
+    ],
+    [
+      0.0,
+      "即使打上千遍万遍我也想给你来电"
+    ],
+    [
+      0.0,
+      "I'm sorry, for everything that I've done"
+    ],
+    [
+      0.0,
+      "对我从前所有的一切说声抱歉"
+    ],
+    [
+      0.0,
+      "But when I call you never seem to be home"
+    ],
+    [
+      0.0,
+      "但我每次来电 似乎都是忙音不断没人接"
+    ],
+    [
+      0.0,
+      "Hello from the outside"
+    ],
+    [
+      0.0,
+      "但这相隔千里的来电"
+    ],
+    [
+      0.0,
+      "At least I can say that I've tried to tell you"
+    ],
+    [
+      0.0,
+      "至少能让我不留遗憾地告诉你"
+    ],
+    [
+      0.0,
+      "I'm sorry, for breaking your heart"
+    ],
+    [
+      0.0,
+      "抱歉我曾让你心碎成片"
+    ],
+    [
+      0.0,
+      "But it don't matter, it clearly doesn't tear you apart anymore"
+    ],
+    [
+      0.0,
+      "但值得庆幸 不会再有人让你悲痛欲绝"
+    ],
+    [
+      0.0,
+      "Hello, how are you"
+    ],
+    [
+      0.0,
+      "嗨 你最近还好吗"
+    ],
+    [
+      0.0,
+      "It's so typical of me to talk about myself"
+    ],
+    [
+      0.0,
+      "我已经习惯了自说自话帮你回答"
+    ],
+    [
+      0.0,
+      "I'm sorry, I hope that you're well"
+    ],
+    [
+      0.0,
+      "也希望你现在能好过一点"
+    ],
+    [
+      0.0,
+      "Did you ever make it out of that town"
+    ],
+    [
+      0.0,
+      "不知你是否已忘记那小城"
+    ],
+    [
+      0.0,
+      "Where nothing ever happened"
+    ],
+    [
+      0.0,
+      "那不再有故事发生的小城"
+    ],
+    [
+      0.0,
+      "It's no secret"
+    ],
+    [
+      0.0,
+      "毫无悬念"
+    ],
+    [
+      0.0,
+      "That the both of us are running out of time"
+    ],
+    [
+      0.0,
+      "我们都荒废了从前的那些时间"
+    ],
+    [
+      0.0,
+      "So hello from the other side"
+    ],
+    [
+      0.0,
+      "所以这来自远方的我的来电"
+    ],
+    [
+      0.0,
+      "即使打上千遍万遍我也想对你说"
+    ],
+    [
+      0.0,
+      "I'm sorry,"
+    ],
+    [
+      0.0,
+      "对我从前"
+    ],
+    [
+      0.0,
+      "for everything that I've done"
+    ],
+    [
+      0.0,
+      "所有的一切说声抱歉"
+    ],
+    [
+      0.0,
+      "But it don't matter"
+    ],
+    [
+      0.0,
+      "但值得庆幸"
+    ],
+    [
+      0.0,
+      "it clearly doesn't tear you apart anymore"
+    ],
+    [
+      0.0,
+      "不会再有人让你悲痛欲绝"
+    ],
+    [
+      0.0,
+      "anymore"
+    ],
+    [
+      0.0,
+      "也不会再有"
+    ],
+    [
+      0.0,
+      "不会再有"
+    ],
+    [
+      0.0,
+      "我们的从前"
+    ],
+    [
+      0.0,
+      "这来自远方的我的来电"
+    ],
+    [
+      0.0,
+      "I must've called a thousand times"
+    ],
+    [
+      0.0,
+      "即使打上千遍万遍"
+    ],
+    [
+      0.0,
+      "to tell you"
+    ],
+    [
+      0.0,
+      "我也想对你"
+    ],
+    [
+      0.0,
+      "说声抱歉"
+    ],
+    [
+      0.0,
+      "对我从前的一切说声抱歉"
+    ],
+    [
+      0.0,
+      "At least I can say that I've tried"
+    ],
+    [
+      0.0,
+      "至少能让我不留遗憾地"
+    ],
+    [
+      0.0,
+      "告诉你"
+    ]
+  ]
+}

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # BiliMuse 一键部署（Linux/macOS）
-# 用法:  ./setup.sh                # 全量安装（ffmpeg + align + tui + web + dev，推荐）
+# 用法:  ./setup.sh                # 全量安装，默认便携模式（运行时文件放项目 data/，推荐）
 #        ./setup.sh --lite         # 轻量模式（仅 m4a + dev 工具链）
-#        ./setup.sh --portable     # 便携模式（运行时文件放项目 data/）
+#        ./setup.sh --standard     # 标准模式（config/logs/db 放系统目录 ~/.config/bilimuse）
 #        MIRROR= ./setup.sh        # 使用官方 PyPI（默认清华镜像）
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LITE=0
-PORTABLE=0
+PORTABLE=1
 for arg in "$@"; do
   case "$arg" in
     --lite) LITE=1 ;;
-    --portable) PORTABLE=1 ;;
+    --standard) PORTABLE=0 ;;
   esac
 done
 VENV="$ROOT/.venv"
@@ -39,7 +39,13 @@ echo ""
 if [ "$PORTABLE" = 1 ]; then
   if [ ! -f "$ROOT/.portable" ]; then
     touch "$ROOT/.portable"
-    echo "已创建 .portable，开启便携模式（config/logs/db 将放 data/）"
+  fi
+  echo "便携模式（默认）：已开启，config/logs/db 放项目 data/（用 --standard 可改用系统目录）"
+else
+  if [ -f "$ROOT/.portable" ]; then
+    echo "标准模式：系统目录配置，但检测到 .portable 存在（可用 bilimuse portable off 关闭便携）"
+  else
+    echo "标准模式：config/logs/db 放系统目录（~/.config/bilimuse）"
   fi
 fi
 echo "完成。使用方式:"

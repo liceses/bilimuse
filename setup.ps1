@@ -1,12 +1,12 @@
 ﻿# BiliMuse 一键部署（Windows）
-# 用法:  .\setup.ps1                # 全量安装（ffmpeg + align + tui + web + dev，推荐）
+# 用法:  .\setup.ps1                # 全量安装，默认便携模式（运行时文件放项目 data/，推荐）
 #        .\setup.ps1 -Lite          # 轻量模式（仅 m4a + dev 工具链）
-#        .\setup.ps1 -Portable      # 便携模式（运行时文件放项目 data/）
+#        .\setup.ps1 -Standard      # 标准模式（config/logs/db 放系统目录 %APPDATA%\bilimuse）
 #        .\setup.ps1 -Mirror ""     # 使用官方 PyPI（默认清华镜像）
 
 param(
     [switch]$Lite,
-    [switch]$Portable,
+    [switch]$Standard,
     [string]$Mirror = "https://pypi.tuna.tsinghua.edu.cn/simple"
 )
 $ErrorActionPreference = "Stop"
@@ -35,12 +35,19 @@ try {
 }
 
 Write-Host ""
-if ($Portable) {
+if ($Standard) {
+    $marker = Join-Path $root ".portable"
+    if (Test-Path $marker) {
+        Write-Host "标准模式：系统目录配置，但检测到 .portable 存在（可用 bilimuse portable off 关闭便携）"
+    } else {
+        Write-Host "标准模式：config/logs/db 放系统目录（%APPDATA%\bilimuse）"
+    }
+} else {
     $marker = Join-Path $root ".portable"
     if (-not (Test-Path $marker)) {
         New-Item -ItemType File -Path $marker | Out-Null
-        Write-Host "已创建 .portable，开启便携模式（config/logs/db 将放 data/）"
     }
+    Write-Host "便携模式（默认）：已开启，config/logs/db 放项目 data/（用 -Standard 可改用系统目录）"
 }
 Write-Host "完成。使用方式:"
 Write-Host "  统一入口(推荐):     双击 bilimuse-start.cmd（安装/配置/TUI/Web 一个入口）"

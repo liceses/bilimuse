@@ -33,6 +33,11 @@ data/
 # 临时测试/部署目录
 test-deploy/
 
+# E2E 测试集运行时产物
+tests/e2e/dl/
+tests/e2e/report/
+tests/e2e/.runconfig/
+
 # 编辑器/系统
 .idea/
 .vscode/

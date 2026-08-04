@@ -72,9 +72,8 @@ echo Installing deps (full: ffmpeg + align + tui + web)...
 "%PY%" -m pip install -e ".[ffmpeg,align,tui,web,dev]" -i https://pypi.tuna.tsinghua.edu.cn/simple
 if errorlevel 1 goto :fail
 echo Install done.
-if not exist "%ROOT%.portable" (
-    echo Tip: run `bilimuse portable on` to enable portable mode. Data goes to project data/.
-)
+if not exist "%ROOT%.portable" type nul > "%ROOT%.portable"
+echo Portable mode enabled by default: config/logs/db go to project data/.
 goto :menu
 
 :config
@@ -103,7 +102,8 @@ goto :menu
 :setup
 "%PY%" -m pip install -e ".[ffmpeg,align,tui,web,dev]" -i https://pypi.tuna.tsinghua.edu.cn/simple
 if errorlevel 1 goto :fail
-echo Dependencies updated.
+if not exist "%ROOT%.portable" type nul > "%ROOT%.portable"
+echo Dependencies updated. Portable mode enabled by default (project data/).
 pause
 goto :menu
 
