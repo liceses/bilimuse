@@ -163,6 +163,14 @@ bilimuse doctor          # 查看当前 模式(便携/标准) + 配置目录
 - `.portable` 标记文件随目录走：拷到别处仍保持便携；克隆仓库默认标准模式。
 - 下载与模型目录 `downloads/`、`models/` 始终在项目内，不随模式变化。
 
+## License
+
+本项目采用 **GPL-3.0-or-later**（见 [LICENSE](LICENSE)）。
+
+许可说明：
+- 核心依赖 `mutagen`（打标签）为 **GPL-2.0-or-later**，故本项目需 GPL 兼容；其余依赖（httpx BSD-3 / pydantic / typer / textual / fastapi / lyric-align / faster-whisper 等 MIT）均兼容 GPL-3.0。
+- 可选 `[ffmpeg]` extra 内嵌的 ffmpeg（imageio-ffmpeg）含 GPL 组件，若未来打包独立可执行文件分发，需按 GPL 附带源码与许可声明。
+
 ## 项目文档
 
 - 需求与调研：[idea.md](idea.md) ｜ 技术方案：[PLAN.md](PLAN.md) ｜ 开发日志：[docs/devlog](docs/devlog/)
