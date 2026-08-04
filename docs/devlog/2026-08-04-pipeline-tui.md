@@ -86,3 +86,37 @@
 - **根因**：`DataTable.add_row()` 不带显式 key 时自动生成 `RowKey` 对象，其 `.value` 是 **None**；`on_data_table_row_selected` 里 `int(event.row_key.value)` 抛 TypeError → handler 静默失败。
 - **修复**：改用 `DataTable.get_row_index(event.row_key)` 取行索引 → `musicalbili/tui.py:on_data_table_row_selected`。
 - **验证**：headless `pilot` 下 `down+enter` 选中第 2 行 → pipeline 被调用（BV2）；新增 `tests/test_tui.py` 回归（`importorskip("textual")`）✅（53 passed）
+
+## Bug 修复（Beautiful World 标签 + whisper 卡住 + TUI 进度细化）
+
+### Bug 1：Beautiful World 标签打错（pick_best 增强 + 合并候选池）
+
+- **现象**：EVA Beautiful World 被标成 "Robin Thicke - A Beautiful World"。
+- **根因**：① query "A Beautiful World" 时 migu 精确命中 Robin Thicke（同名 1.0 分）；② **migu 命中即返回，netease（有正确 宇多田 316s）根本没被咨询**；③ 无时长约束，同名异歌手/版本无法区分。
+- **修复**：
+  1. `search_metadata`/`auto_tag` **合并所有源候选统一 `pick_best`**（不再首源命中即返回），tie 仍 migu 优先 → `services/tagger.py`。
+  2. `pick_best(..., duration=视频时长)`：netease 候选 `|dur−video|≤8s +0.25 / ≤30s +0.05 / 否则 −0.2`。
+  3. **版本后缀惩罚**（Remastered/Live/Karaoke/Da Capo/翻唱/Cover −0.15）。
+  - pipeline 传入视频时长；`search_metadata` 每源只搜一次（结果缓存）。
+- **验证**：`Beautiful World EVA`/`宇多田ヒカル - Beautiful World`/4 个真实 EVA 视频标题 → 全部正确标 **宇多田ヒカル - Beautiful World**（时长命中）。
+- **边界**：若视频标题字面就是 "A Beautiful World"（宇多田不在任何源结果池），无法凭空猜是 EVA 歌——信息不足，接受。
+
+### Bug 2：whisper 卡住（模型引导 + 子进程清理）
+
+- **根因**：无配置 → `whisper_model="small"` → 从 HF(hf-mirror <15KB/s) 下载模型 → 卡住；中断后 asyncio 子进程传输未清理 → `BaseSubprocessTransport.__del__` 告警。
+- **修复**：
+  1. `calibrate_align` 跑前 `on_status` 提示"正在 whisper 校准（首次需下载模型或配置本地路径，可能较久）"。
+  2. `config` 向导检测到 `models/faster-whisper-small` 存在 → 默认填本地路径。
+  3. `probe_duration`/`calibrate_align`/`convert_audio`/`fetch_cover_bytes` 子进程 **try/finally + proc.kill() + await wait()**（防中断泄漏告警）。
+
+### TUI 进度细化
+
+- 新增 `ProgressBar`（下载进度）+ 状态行（当前阶段/歌曲/校准提示）。
+- pipeline 发 `stage`（download/tag/lyric/done）+ `align_start` 类 message；`_echo_events` 兼容。
+- headless 验证：进度条到 100、状态"完成"。
+
+### 验证
+
+- `pick_best` 时长/后缀单测 + `search_metadata` 合并池 ✅（55 passed）
+- 真实 EVA 标题 4 例全标 宇多田 ✅
+- TUI headless：ProgressBar 100 + status 完成 ✅

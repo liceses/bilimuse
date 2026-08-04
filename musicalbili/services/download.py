@@ -73,7 +73,12 @@ async def convert_audio(ffmpeg: str, src: Path, dst: Path, codec: str) -> None:
     proc = await asyncio.create_subprocess_exec(
         *args, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
     )
-    _, stderr = await proc.communicate()
+    try:
+        _, stderr = await proc.communicate()
+    finally:
+        if proc.returncode is None:
+            proc.kill()
+            await proc.wait()
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg 转码失败: {stderr.decode(errors='replace')}")
 

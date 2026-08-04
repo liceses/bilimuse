@@ -250,7 +250,12 @@ class MiguMeta(_BaseMeta):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        out, _ = await proc.communicate(data)
+        try:
+            out, _ = await proc.communicate(data)
+        finally:
+            if proc.returncode is None:
+                proc.kill()
+                await proc.wait()
         return out if proc.returncode == 0 and out else None
 
 

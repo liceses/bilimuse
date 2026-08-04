@@ -47,6 +47,19 @@ def test_pick_best_artist_penalty():
     assert pick_best(migu_real, "周杰伦 - 晴天").id == "x"
 
 
+def test_pick_best_duration_disambiguates():
+    # 同名异歌手 + 时长：EVA Beautiful World(318s) 应胜出
+    robin = SongMeta(source="migu", id="r", name="A Beautiful World", artists=["Robin Thicke"], duration_ms=0)
+    utada = SongMeta(source="netease", id="u", name="Beautiful World", artists=["宇多田ヒカル"], duration_ms=316040)
+    assert pick_best([robin, utada], "A Beautiful World", duration=318).id == "u"
+
+
+def test_pick_best_suffix_penalty():
+    plain = SongMeta(source="migu", id="p", name="Beautiful World", artists=["宇多田ヒカル"])
+    remastered = SongMeta(source="migu", id="r", name="Beautiful World (2021 Remastered)", artists=["宇多田ヒカル"])
+    assert pick_best([remastered, plain], "宇多田ヒカル - Beautiful World").id == "p"
+
+
 class _FakeProv:
     name = "fake"
 

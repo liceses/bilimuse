@@ -62,8 +62,14 @@ def _norm_artist(a: str) -> str:
     return re.sub(r"[\s.\-、，'`_~]+$", "", a)
 
 
-def pick_best(songs: list[SongMeta], query: str) -> SongMeta | None:
-    """按歌名相似度 + 歌手命中评分，低于阈值返回 None。"""
+_VERSION_SUFFIX = re.compile(r"(Remastered|Remaster|Live|Karaoke|伴奏|翻唱|Cover|Da\s*Capo|Acoustica|Version|Ver\.|Mix)", re.IGNORECASE)
+
+
+def pick_best(songs: list[SongMeta], query: str, duration: float | None = None) -> SongMeta | None:
+    """按歌名相似度 + 歌手命中 + 时长吻合评分，低于阈值返回 None。
+
+    duration=视频时长（秒）：netease 候选有 duration_ms，差距小加分、大罚分，区分同名版本/异歌手。
+    """
     artist, title = split_query(query)
     if not title:
         return None
@@ -82,6 +88,16 @@ def pick_best(songs: list[SongMeta], query: str) -> SongMeta | None:
                 for a in s.artists
             )
             score += 0.3 if hits else -0.4
+        if duration and s.duration_ms:
+            diff = abs(s.duration_ms / 1000 - duration)
+            if diff <= 8:
+                score += 0.25
+            elif diff <= 30:
+                score += 0.05
+            else:
+                score -= 0.2
+        if _VERSION_SUFFIX.search(s.name):
+            score -= 0.15
         if score > best_score:
             best, best_score = s, score
     return best if best_score >= 0.5 else None
@@ -159,22 +175,34 @@ def tag_file(path: Path, meta: SongMeta, cover: bytes | None = None, lyrics: str
         raise ValueError(f"不支持的标签格式: {ext}")
 
 
-async def search_metadata(query: str, providers: list) -> tuple[object | None, SongMeta | None]:
-    """按源顺序反查，返回首个命中阈值的数据源及其候选。"""
+async def search_metadata(query: str, providers: list, duration: float | None = None) -> tuple[object | None, SongMeta | None]:
+    """合并所有源候选统一 pick_best（含时长约束），返回 (数据源, 最佳歌曲)。
+
+    不再"首个源命中即返回"——否则 migu 同名异歌手会盖过 netease 的正确命中。
+    """
+    pool: list[SongMeta] = []
+    results: dict[object, list[SongMeta]] = {}
     for provider in providers:
         try:
             songs = await provider.search(query)
         except Exception:  # noqa: BLE001, S112 - 单源失败不阻断其他源
             continue
-        song = pick_best(songs, query)
-        if song:
+        results[provider] = songs
+        pool.extend(songs)
+    song = pick_best(pool, query, duration)
+    if not song:
+        return None, None
+    for provider, songs in results.items():
+        if any(s.id == song.id and s.source == song.source for s in songs):
             return provider, song
-    return None, None
+    return providers[0], song
 
 
-async def auto_tag(path: Path, query: str, providers: list, cfg: Config, fallback_artist: str = "") -> tuple[Path | None, SongMeta | None]:
+async def auto_tag(
+    path: Path, query: str, providers: list, cfg: Config, fallback_artist: str = "", duration: float | None = None
+) -> tuple[Path | None, SongMeta | None]:
     """多源反查 → 打标签 → 重命名。返回 (新路径, 元数据)；无匹配返回 (None, None)。"""
-    provider, song = await search_metadata(query, providers)
+    provider, song = await search_metadata(query, providers, duration)
     if not song:
         return None, None
     cover = await provider.fetch_cover_bytes(song)

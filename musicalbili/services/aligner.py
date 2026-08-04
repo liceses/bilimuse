@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from ..config import Config
@@ -54,7 +55,12 @@ async def probe_duration(path: Path, cfg: Config) -> float | None:
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE,
     )
-    _, err = await proc.communicate()
+    try:
+        _, err = await proc.communicate()
+    finally:
+        if proc.returncode is None:
+            proc.kill()
+            await proc.wait()
     m = _DURATION_RE.search(err.decode(errors="replace"))
     if m:
         h, mi, s = m.groups()
@@ -149,6 +155,7 @@ async def calibrate_align(
     cfg: Config,
     force_model: str | None = None,
     language_hint: str = "",
+    on_status: Callable[[str], Awaitable[None]] | None = None,
 ) -> Lyric | None:
     """lyric-align(faster-whisper) 强制对齐。
 
@@ -161,6 +168,11 @@ async def calibrate_align(
         lyric.warning = "未安装 lyric-align，装 `pip install -e '.[align]'` 后可用"
         return None
     language = detect_lyric_language(lyric.text) or language_hint or cfg.whisper_language
+    if on_status:
+        await on_status(
+            f"正在 whisper 校准（语言 {language}，模型 {force_model or cfg.whisper_model}；"
+            "首次需下载模型或配置本地路径，可能较久）..."
+        )
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
         lyrics_txt = tmp_dir / "lyrics.txt"
@@ -185,7 +197,12 @@ async def calibrate_align(
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE, env=env
         )
-        _, err = await proc.communicate()
+        try:
+            _, err = await proc.communicate()
+        finally:
+            if proc.returncode is None:
+                proc.kill()
+                await proc.wait()
         if proc.returncode != 0 or not out_json.is_file():
             lyric.warning = f"lyric-align 失败: {err.decode(errors='replace')[-300:]}"
             return None
@@ -206,13 +223,20 @@ async def calibrate_align(
     return lyric
 
 
-async def calibrate(path: Path, lyric: Lyric, cfg: Config, force_align: bool = False, meta_language: str = "") -> Lyric:
+async def calibrate(
+    path: Path,
+    lyric: Lyric,
+    cfg: Config,
+    force_align: bool = False,
+    meta_language: str = "",
+    on_status: Callable[[str], Awaitable[None]] | None = None,
+) -> Lyric:
     """校准编排：已同步则直接返回；否则 lyric-align（可用时）；失败保留原歌词。"""
     duration = await probe_duration(path, cfg)
 
     if duration is None:
         if cfg.align_enabled and align_available():
-            aligned = await calibrate_align(path, lyric, cfg, language_hint=meta_language)
+            aligned = await calibrate_align(path, lyric, cfg, language_hint=meta_language, on_status=on_status)
             if aligned is not None:
                 return aligned
         lyric.warning = "无法获取音频时长且歌词未校准（装 ffmpeg 或 [align] 可改善）"
@@ -226,7 +250,7 @@ async def calibrate(path: Path, lyric: Lyric, cfg: Config, force_align: bool = F
         return lyric
 
     if cfg.align_enabled and align_available() and (force_align or not synced):
-        aligned = await calibrate_align(path, lyric, cfg, language_hint=meta_language)
+        aligned = await calibrate_align(path, lyric, cfg, language_hint=meta_language, on_status=on_status)
         if aligned is not None:
             return aligned
 

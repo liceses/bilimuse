@@ -136,8 +136,9 @@ async def _echo_events(ev: dict) -> None:
         typer.echo(f"\r下载 {ev['pct']:3d}%", nl=False)
         if ev["pct"] >= 100:
             typer.echo()
-    elif t == "message":
-        typer.echo(ev["text"])
+    elif t in ("stage", "message"):
+        if ev.get("text"):
+            typer.echo(ev["text"])
     elif t == "meta":
         typer.echo(f"匹配来源: {ev['meta'].source}")
     elif t == "lyric":
@@ -279,9 +280,11 @@ def config(config: Path = typer.Option(None, "--config", "-c", help="配置文�
     cfg.format = _ask(f"格式 (m4a/mp3/flac) [{cfg.format}]", cfg.format)
     cfg.lyric_sources = _ask_list("歌词源顺序", cfg.lyric_sources)
     cfg.align_enabled = _ask_bool(f"歌词精确校准(whisper) [{'开' if cfg.align_enabled else '关'}]", cfg.align_enabled)
+    local_model = Path("models") / "faster-whisper-small"
+    model_default = str(local_model) if local_model.is_dir() else cfg.whisper_model
     cfg.whisper_model = _ask(
-        f"whisper 模型(名称或本地路径，国内可 ModelScope 下载) [{cfg.whisper_model}]",
-        cfg.whisper_model,
+        f"whisper 模型(名称或本地路径，检测到 {local_model} 可回车用) [{model_default}]",
+        model_default,
     )
     if not cfg.sessdata and _ask_bool("扫码登录 B 站(降风控/高音质)? [n]", False):
         try:

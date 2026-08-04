@@ -1,11 +1,11 @@
-"""Textual TUI：搜索 → 结果表 → 选中下载 → 日志面板。"""
+"""Textual TUI：搜索 → 结果表 → 选中下载 → 进度条/状态/日志面板。"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from textual.app import App, ComposeResult
-from textual.widgets import DataTable, Footer, Header, Input, Static
+from textual.widgets import DataTable, Footer, Header, Input, ProgressBar, Static
 
 from .config import Config
 from .services.pipeline import download_song_pipeline
@@ -24,6 +24,8 @@ class MusicalbiliApp(App):
         yield Header()
         yield Input(placeholder="输入歌名/歌手/歌词片段，回车搜索")
         yield DataTable(id="results")
+        yield Static(id="status", classes="statusbar")
+        yield ProgressBar(id="progress", total=100)
         yield Static(id="log", expand=True)
         yield Footer()
 
@@ -31,10 +33,11 @@ class MusicalbiliApp(App):
         table = self.query_one(DataTable)
         table.add_columns("来源", "BV号", "时长", "播放", "UP主", "标题")
         table.cursor_type = "row"
+        self.query_one("#progress", ProgressBar).update(total=100, progress=0)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         self.query_one(Input).disabled = True
-        self.notify("搜索中...")
+        self.query_one("#status", Static).update("搜索中...")
         self.run_worker(self.do_search(event.value))
 
     async def do_search(self, query: str) -> None:
@@ -54,6 +57,7 @@ class MusicalbiliApp(App):
                 v.bvid, f"{v.duration}s", str(v.play), v.author, v.title,
             )
         log.update(f"共 {len(self.hits)} 条，↑↓ 选择后回车下载")
+        self.query_one("#status", Static).update("")
         self.query_one(Input).disabled = False
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
@@ -71,10 +75,12 @@ class MusicalbiliApp(App):
     async def do_download(self, hit: SearchHit) -> None:
         log = self.query_one("#log", Static)
         log.update(f"下载: {hit.version.title}\n{hit.version.bvid}")
+        self.query_one("#status", Static).update("准备下载...")
         try:
             result = await download_song_pipeline(self.cfg, hit.version.bvid, on_event=self._log_event)
         except Exception as e:  # noqa: BLE001
             log.update(f"失败: {e}")
+            self.query_one("#status", Static).update(f"失败: {e}")
             self.query_one(DataTable).disabled = False
             return
         meta = result["meta"]
@@ -85,21 +91,27 @@ class MusicalbiliApp(App):
         if lyric:
             parts.append(f"歌词: {lyric.source}（{lyric.calib_method}）")
         log.update("\n".join(parts))
+        self.query_one("#status", Static).update("完成")
         self.query_one(DataTable).disabled = False
 
     async def _log_event(self, ev: dict) -> None:
+        status = self.query_one("#status", Static)
         log = self.query_one("#log", Static)
         t = ev["type"]
         if t == "info":
-            log.update(f"标题: {ev['title']}\nUP主: {ev['author']}")
+            status.update(f"标题: {ev['title']}  |  UP主: {ev['author']}")
+        elif t == "stage":
+            status.update(ev.get("text") or ev.get("stage", ""))
+            if ev.get("stage") == "download":
+                self.query_one("#progress", ProgressBar).update(total=100, progress=0)
         elif t == "progress":
-            log.update(f"下载 {ev['pct']}%")
+            self.query_one("#progress", ProgressBar).update(progress=ev["pct"], total=100)
         elif t == "message":
-            log.update(ev["text"])
+            status.update(ev["text"])
         elif t == "meta":
             m = ev["meta"]
-            log.update(f"匹配来源: {m.source} → {m.artist_str} - {m.name}")
+            status.update(f"匹配: {m.source} → {m.artist_str} - {m.name}")
         elif t == "lyric":
-            log.update(f"歌词: {ev['lyric'].source} → .lrc 已写入")
+            status.update(f"歌词: {ev['lyric'].source} → .lrc 已写入")
         elif t == "warning":
             log.update(ev["text"])

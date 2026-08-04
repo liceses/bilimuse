@@ -111,7 +111,7 @@ async def _fake_download(bvid, cid, *, cfg, title, artist, fmt, progress):
     return Path("downloads/test.m4a")
 
 
-async def _fake_auto_tag(path, title, providers, cfg, fallback_artist=""):
+async def _fake_auto_tag(path, title, providers, cfg, fallback_artist="", duration=None):
     meta = SongMeta(source="migu", id=1, name="晴天", artists=["周杰伦"])
     return Path("downloads/周杰伦 - 晴天.m4a"), meta
 

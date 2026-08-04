@@ -48,7 +48,14 @@ async def _attach_lyric(
         await emit({"type": "warning", "text": "未找到歌词，已生成纯音乐占位 .lrc"})
         return lyric
     pairs = pair_translation(lyric.text, lyric.tlyric)
-    lyric = await calibrate(path, lyric, cfg, force_align, meta_language=meta.language if meta else "")
+    async def status(text: str) -> None:
+        await emit({"type": "message", "text": text})
+
+    lyric = await calibrate(
+        path, lyric, cfg, force_align,
+        meta_language=meta.language if meta else "",
+        on_status=status,
+    )
     final_text = reattach_translation(lyric.text, pairs) if lyric.source != "placeholder" else lyric.text
     sidecar.write_text(final_text, encoding="utf-8")
     await emit({"type": "lyric", "lyric": lyric})
@@ -83,14 +90,17 @@ async def download_song_pipeline(
                 selected = pages[page - 1]
                 cid = selected.cid
                 title = selected.part if len(pages) > 1 else detail.title
+                video_dur = float(selected.duration) if selected.duration else None
             else:
                 cid = detail.cid
                 title = detail.title
+                video_dur = float(detail.duration) if detail.duration else None
 
         if db.already_downloaded(bvid, cid):
             raise RuntimeError(f"{bvid} 的 P{page}(cid={cid}) 已下载过，跳过（去重）")
 
         await emit({"type": "info", "title": title, "author": detail.author})
+        await emit({"type": "stage", "stage": "download", "text": "下载中..."})
         state = {"last": -1}
 
         async def progress(done: int, total: int) -> None:
@@ -107,9 +117,11 @@ async def download_song_pipeline(
 
         meta: SongMeta | None = None
         if not no_tag:
-            await emit({"type": "message", "text": "反查元数据并打标签..."})
+            await emit({"type": "stage", "stage": "tag", "text": "反查元数据并打标签..."})
             async with MiguMeta(cfg) as migu, NeteaseMeta(cfg) as netease:
-                new_path, meta = await auto_tag(path, title, [migu, netease], cfg, fallback_artist=detail.author)
+                new_path, meta = await auto_tag(
+                    path, title, [migu, netease], cfg, fallback_artist=detail.author, duration=video_dur
+                )
             if meta:
                 path = new_path
                 await emit({"type": "meta", "meta": meta})
@@ -118,8 +130,10 @@ async def download_song_pipeline(
 
         lyric: Lyric | None = None
         if not no_lyric:
+            await emit({"type": "stage", "stage": "lyric", "text": "获取歌词..."})
             lyric = await _attach_lyric(cfg, path, meta, title, bvid, cid, force_align, emit)
 
+        await emit({"type": "stage", "stage": "done", "text": "完成"})
         db.add(
             bvid=bvid,
             cid=cid,
