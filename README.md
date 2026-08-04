@@ -6,16 +6,20 @@ B 站深度定制的音乐下载器：搜索歌名/歌手/歌词 → 选版本 �
 
 需要 Python 3.11+。
 
-**方式一：一键脚本（推荐）**
+**方式一：统一入口（推荐）**
+
+双击 `bilimuse-start.cmd`（Windows）/ 运行 `./bilimuse-start`（Unix）——一个入口搞定「安装 → 配置 → 使用」：首次运行自动建 venv 装全量依赖，自动打开配置向导，之后从菜单启动 TUI / Web / 命令行。
+
+也可命令行安装：
 
 ```bash
 # Windows
-.\setup.ps1                  # 轻量模式（仅 m4a）
-.\setup.ps1 -WithFfmpeg      # 完整模式（支持 mp3/flac）
+.\setup.ps1                  # 全量安装（ffmpeg + align + tui + web + dev，推荐）
+.\setup.ps1 -Lite            # 轻量模式（仅 m4a）
 
 # Linux / macOS
-./setup.sh                   # 轻量模式
-./setup.sh --with-ffmpeg     # 完整模式
+./setup.sh                   # 全量安装（推荐）
+./setup.sh --lite            # 轻量模式（仅 m4a）
 ```
 
 **方式二：手动**
@@ -24,7 +28,7 @@ B 站深度定制的音乐下载器：搜索歌名/歌手/歌词 → 选版本 �
 python -m venv .venv
 .venv\Scripts\activate        # Windows；Linux/macOS: source .venv/bin/activate
 pip install -e .              # 轻量（m4a）
-pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
+pip install -e ".[ffmpeg,align,tui,web,dev]"    # 全量（mp3/flac + TUI/Web + 歌词校准）
 ```
 
 > ffmpeg 说明：`.[ffmpeg]` 通过 PyPI 拉取 `imageio-ffmpeg`（~60MB 静态 ffmpeg，内含 libmp3lame），装完即用、不依赖系统环境、不经 GitHub。仅下载 m4a 可不装。
@@ -33,13 +37,14 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 
 | 方式 | 命令 |
 |---|---|
+| **统一入口（推荐）** | 双击 `bilimuse-start.cmd`（Win）/ `./bilimuse-start`（Unix）：安装→配置→TUI/Web 菜单；也支持 `bilimuse-start config\|tui\|web` 直达 |
 | **一键 TUI** | 双击 `bilimuse-tui.cmd`（Win）/ `./bilimuse-tui`（Unix） |
 | **项目目录命令** | cmd: `bilimuse tui`；PowerShell: `.\bilimuse tui`；Unix: `./bilimuse.sh tui` |
 | **激活 venv** | `.\.venv\Scripts\Activate.ps1` 后任意目录 `bilimuse` |
 
-首次使用先跑配置向导：双击 `bilimuse-config.cmd` 或 `bilimuse config`（设置下载目录/格式/登录等，免手编 json）。
+首次使用配置向导会在 `bilimuse-start` 首次运行时自动打开；也可手动双击 `bilimuse-config.cmd` 或 `bilimuse config`（设置下载目录/格式/登录等，免手编 json）。
 
-> 歌词精确校准（可选）：`pip install -e ".[align]"` 装 lyric-align（faster-whisper），歌词时间轴失配时自动强制对齐。语言自动检测（日语歌自动用日语识别），模型默认 `small`（约 460MB），国内推荐从 ModelScope 下载后把 `whisper_model` 配成本地路径：
+> 歌词精确校准：全量安装已含 lyric-align（faster-whisper），歌词时间轴失配时自动强制对齐。语言自动检测（日语歌自动用日语识别），模型默认 `small`（约 460MB），国内推荐从 ModelScope 下载后把 `whisper_model` 配成本地路径：
 > ```
 > pip install modelscope
 > modelscope download --model Systran/faster-whisper-small --local_dir models/faster-whisper-small

@@ -30,6 +30,9 @@ models/
 data/
 .portable
 
+# 临时测试/部署目录
+test-deploy/
+
 # 编辑器/系统
 .idea/
 .vscode/

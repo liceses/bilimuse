@@ -16,6 +16,7 @@
 | 2026-08-04 | [Web 界面](2026-08-04-web.md) | M6 | FastAPI + WebSocket 进度、原生单页、[web] extra |
 | 2026-08-04 | [日志 + 统一状态通道](2026-08-04-logging-status.md) | M7 | 日志文件滚动、status.emit 双写、provider 级解析状态、config/等待输入三端显示 |
 | 2026-08-04 | [便携模式](2026-08-04-portable.md) | M8 | .portable 标记/env 触发、data/ 目录、portable on/off 命令、配置迁移 |
+| 2026-08-04 | [统一入口 + 部署测试](2026-08-04-deploy-test.md) | M9 | bilimuse-start 安装/配置/使用一条龙、setup 全量档、从零部署实测 |
 
 ## 技术沉淀速查表
 
@@ -53,3 +54,6 @@
 | pipeline 事件化 | 编排抽 `services/pipeline.py`，on_event 推 info/progress/meta/lyric，CLI/TUI/Web 复用 | `pipeline.py` |
 | Textual 8 | `Input.action_submit()` 是协程需 await；headless 用 `run_test`+`pilot.pause()` | `tui.py` |
 | `「」`/`《》`歌名提取 | `split_query` 优先括号内歌名（日式引号），再 ` - ` 分隔 | `bilimuse/services/tagger.py` |
+| cmd 中文不乱码 | `.cmd` 存 UTF-8 无 BOM + 首行 `@echo off` 后 `chcp 65001`；PowerShell 5.1 则必须 UTF-8 **带 BOM**，机制相反 | `bilimuse-start.cmd` / `setup.ps1` |
+| 首次配置探测 | `python -c "from bilimuse.config import default_config_dir; sys.exit(...)"` + `errorlevel`，无 venv 无 python 判断直接进安装 | `bilimuse-start.cmd:17` |
+| 统一入口 | 启动器管安装/配置/菜单，命令转发 `bilimuse.cmd` 保持纯净；参数直达 `config/tui/web` 分流 | `bilimuse-start.cmd` |

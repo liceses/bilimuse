@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # BiliMuse 一键部署（Linux/macOS）
-# 用法:  ./setup.sh                   # 轻量模式（仅 m4a，无 ffmpeg）
-#        ./setup.sh --with-ffmpeg     # 完整模式（含 imageio-ffmpeg，支持 mp3/flac）
-#        ./setup.sh --portable        # 便携模式（运行时文件放项目 data/）
-#        MIRROR= ./setup.sh           # 使用官方 PyPI（默认清华镜像）
+# 用法:  ./setup.sh                # 全量安装（ffmpeg + align + tui + web + dev，推荐）
+#        ./setup.sh --lite         # 轻量模式（仅 m4a + dev 工具链）
+#        ./setup.sh --portable     # 便携模式（运行时文件放项目 data/）
+#        MIRROR= ./setup.sh        # 使用官方 PyPI（默认清华镜像）
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WITH_FFMPEG="${1:-}"
-WITH_PORTABLE="${2:-}"
+LITE=0
+PORTABLE=0
+for arg in "$@"; do
+  case "$arg" in
+    --lite) LITE=1 ;;
+    --portable) PORTABLE=1 ;;
+  esac
+done
 VENV="$ROOT/.venv"
 PY="$VENV/bin/python"
 
@@ -23,22 +29,23 @@ PIP_ARGS+=("-i" "$MIRROR")
 echo "升级 pip ..."
 "$PY" -m pip install --upgrade pip "${PIP_ARGS[@]}"
 
-PKG=".[dev]"
-[ "$WITH_FFMPEG" = "--with-ffmpeg" ] && PKG=".[ffmpeg,dev]"
+PKG=".[ffmpeg,align,tui,web,dev]"
+[ "$LITE" = 1 ] && PKG=".[dev]"
 echo "安装依赖: $PKG"
 cd "$ROOT"
 "$PY" -m pip install -e "$PKG" "${PIP_ARGS[@]}"
 
 echo ""
-if [ "$WITH_PORTABLE" = "--portable" ]; then
+if [ "$PORTABLE" = 1 ]; then
   if [ ! -f "$ROOT/.portable" ]; then
     touch "$ROOT/.portable"
     echo "已创建 .portable，开启便携模式（config/logs/db 将放 data/）"
   fi
 fi
 echo "完成。使用方式:"
-echo "  项目目录: ./bilimuse.sh tui / ./bilimuse.sh get 歌名"
-echo "  激活后任意目录: source .venv/bin/activate 然后 bilimuse"
-echo "  一键启动 TUI:   ./bilimuse-tui"
-echo "  一键配置向导:   ./bilimuse-config"
-[ "$WITH_FFMPEG" != "--with-ffmpeg" ] && echo "提示: 需要 mp3/flac 时用 ./setup.sh --with-ffmpeg 重装"
+echo "  统一入口(推荐):   ./bilimuse-start（安装/配置/TUI/Web 一个入口）"
+echo "  项目目录:         ./bilimuse.sh tui / ./bilimuse.sh get 歌名"
+echo "  激活后任意目录:   source .venv/bin/activate 然后 bilimuse"
+echo "  一键配置向导:     ./bilimuse-config"
+echo "  一键启动 TUI:     ./bilimuse-tui"
+[ "$LITE" = 1 ] && echo "提示: 轻量模式仅 m4a。需要 mp3/flac/TUI/Web/align 时重跑 ./setup.sh（全量）"

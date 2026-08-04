@@ -1,11 +1,11 @@
-# BiliMuse 一键部署（Windows）
-# 用法:  .\setup.ps1                # 轻量模式（仅 m4a，无 ffmpeg）
-#        .\setup.ps1 -WithFfmpeg    # 完整模式（含 imageio-ffmpeg，支持 mp3/flac）
+﻿# BiliMuse 一键部署（Windows）
+# 用法:  .\setup.ps1                # 全量安装（ffmpeg + align + tui + web + dev，推荐）
+#        .\setup.ps1 -Lite          # 轻量模式（仅 m4a + dev 工具链）
 #        .\setup.ps1 -Portable      # 便携模式（运行时文件放项目 data/）
 #        .\setup.ps1 -Mirror ""     # 使用官方 PyPI（默认清华镜像）
 
 param(
-    [switch]$WithFfmpeg,
+    [switch]$Lite,
     [switch]$Portable,
     [string]$Mirror = "https://pypi.tuna.tsinghua.edu.cn/simple"
 )
@@ -25,7 +25,7 @@ if ($Mirror) { $pipArgs += @("-i", $Mirror) }
 Write-Host "升级 pip ..."
 & $py -m pip install --upgrade pip @pipArgs
 
-$pkg = if ($WithFfmpeg) { ".[ffmpeg,dev]" } else { ".[dev]" }
+$pkg = if ($Lite) { ".[dev]" } else { ".[ffmpeg,align,tui,web,dev]" }
 Write-Host "安装依赖: $pkg"
 Push-Location $root
 try {
@@ -43,11 +43,12 @@ if ($Portable) {
     }
 }
 Write-Host "完成。使用方式:"
-Write-Host "  cmd 项目目录直接:  bilimuse tui / bilimuse get 歌名"
-Write-Host "  PowerShell 项目目录:  .\bilimuse tui"
+Write-Host "  统一入口(推荐):     双击 bilimuse-start.cmd（安装/配置/TUI/Web 一个入口）"
+Write-Host "  cmd 项目目录直接:   bilimuse tui / bilimuse get 歌名"
+Write-Host "  PowerShell 项目目录: .\bilimuse tui"
 Write-Host "  激活后任意目录:      .\.venv\Scripts\Activate.ps1 然后 bilimuse"
-Write-Host "  一键启动 TUI:        双击 bilimuse-tui.cmd"
 Write-Host "  一键配置向导:        双击 bilimuse-config.cmd"
-if (-not $WithFfmpeg) {
-    Write-Host "提示: 需要 mp3/flac 时用 .\setup.ps1 -WithFfmpeg 重装"
+Write-Host "  一键启动 TUI:        双击 bilimuse-tui.cmd"
+if ($Lite) {
+    Write-Host "提示: 轻量模式仅 m4a。需要 mp3/flac/TUI/Web/歌词校准(align) 时，重跑 .\setup.ps1（全量）"
 }

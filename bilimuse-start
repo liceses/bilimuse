@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# BiliMuse 统一入口（Linux/macOS）：安装 -> 配置 -> 使用 一条龙
+# 用法:  ./bilimuse-start                 # 菜单
+#        ./bilimuse-start config|tui|web  # 直达
+set -e
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PY="$ROOT/.venv/bin/python"
+MIRROR="${MIRROR:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+FULL=".[ffmpeg,align,tui,web,dev]"
+
+case "${1:-}" in
+  config|tui|web)
+    if [ ! -f "$PY" ]; then
+      echo "[BiliMuse] 未安装，请先运行 ./bilimuse-start（无参数）完成安装"
+      exit 1
+    fi
+    case "$1" in
+      config) "$PY" -m bilimuse config ;;
+      tui)    "$PY" -m bilimuse tui ;;
+      web)    "$PY" -m bilimuse web ;;
+    esac
+    exit 0
+    ;;
+  "") ;;  # 菜单模式
+  *) echo "未知参数: $1（支持 config / tui / web）"; exit 1 ;;
+esac
+
+if [ ! -f "$PY" ]; then
+  echo "[BiliMuse] 未检测到虚拟环境，开始首次安装..."
+  echo "创建虚拟环境 .venv ..."
+  python3 -m venv "$ROOT/.venv"
+  echo "安装依赖（全量: ffmpeg + align + tui + web）..."
+  "$PY" -m pip install -e "$FULL" -i "$MIRROR"
+  echo "安装完成。"
+fi
+
+# 首次运行自动打开配置向导
+if ! "$PY" -c "import sys; from pathlib import Path; from bilimuse.config import default_config_dir; sys.exit(0 if (default_config_dir()/'config.json').is_file() else 1)"; then
+  echo "[BiliMuse] 首次使用，打开配置向导..."
+  "$PY" -m bilimuse config
+fi
+
+while true; do
+  echo "================= BiliMuse ================="
+  echo "  1  配置向导（登录/下载目录/格式/模型）"
+  echo "  2  启动 TUI 界面"
+  echo "  3  启动 Web 界面 (http://127.0.0.1:8000)"
+  echo "  4  命令行模式"
+  echo "  5  修复/重装依赖"
+  echo "  0  退出"
+  echo "============================================"
+  read -rp "请选择 [0-5]: " ch
+  case "$ch" in
+    1) "$PY" -m bilimuse config ;;
+    2) "$PY" -m bilimuse tui ;;
+    3) "$PY" -m bilimuse web ;;
+    4) read -rp "bilimuse> " c; [ -n "$c" ] && "$PY" -m bilimuse $c ;;
+    5) "$PY" -m pip install -e "$FULL" -i "$MIRROR" ;;
+    0) exit 0 ;;
+  esac
+done
