@@ -70,6 +70,45 @@ musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
 
 > `get` 支持**歌词片段搜索**：输入一句歌词（如"窗外的麻雀 在电线杆上多嘴"），自动经网易云反查真实歌名 → 再去 B 站选版本。
 
+## Web 界面
+
+浏览器操作，适合批量/服务化。使用流程：
+
+**1. 安装 Web 依赖**
+
+```bash
+pip install -e ".[web]"        # fastapi / uvicorn / websockets
+```
+
+**2. 启动**
+
+```bash
+musicalbili web                # 默认 http://127.0.0.1:8000
+musicalbili web --port 9000    # 换端口
+musicalbili web --host 0.0.0.0 # 局域网其他设备访问
+```
+
+（cmd 下：`.\musicalbili web`；Unix：`./musicalbili.sh web`）
+
+**3. 浏览器打开** `http://127.0.0.1:8000`
+
+- **搜索**：输入歌名 / 歌手 / **歌词片段**（如"窗外的麻雀 在电线杆上多嘴"）回车 → 结果表显示来源（`歌词反查`/`直接`）、BV号、时长、播放量、UP主、标题
+- **下载**：点击结果行 → 页面顶部实时显示：阶段状态（下载中→反查元数据→获取歌词→whisper 校准）、下载进度条、日志面板（元数据/歌词来源/校准方法/保存路径）
+- **顶部信息栏**：Python 版本、登录态、lyric-align/模型状态、已检测模型
+
+**4. HTTP API**（可脚本化）
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/search?q=晴天&limit=10` | 两跳搜索（含歌词反查） |
+| `GET /api/doctor` | 环境 + 模型解析 + 检测列表 |
+| `GET /api/model` | 模型信息（resolve + detect + sizes） |
+| `WS /ws/download` | WebSocket：发送 `{"bvid":"BV1...","page":1,"format":"m4a"}` → 推送进度事件（`stage`/`progress`/`meta`/`lyric`/`warning`/`result`/`error`） |
+
+**提示**
+- 首次使用先在 `musicalbili config` 向导里登录 B 站（提升音质/风控）并配置 `whisper_model` 为本地模型，Web 端直接生效。
+- 下载产物（音频 + `.lrc` 侧车）默认在 `downloads/`（config 的 `download_dir`）。
+
 ## 配置
 
 配置文件位于 `%APPDATA%\musicalbili\config.json`（Windows）或 `~/.config/musicalbili/config.json`（Linux/macOS）：
