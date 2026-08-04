@@ -58,8 +58,8 @@ class MusicalbiliApp(App):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         try:
-            idx = int(event.row_key.value) - 1
-        except (TypeError, ValueError):
+            idx = self.query_one(DataTable).get_row_index(event.row_key)
+        except (KeyError, ValueError):
             return
         if not (0 <= idx < len(self.hits)):
             return

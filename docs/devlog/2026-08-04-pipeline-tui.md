@@ -79,3 +79,10 @@
 - `.\musicalbili.cmd --help` / `.\musicalbili.cmd tui --help`：shim 生效 ✅
 - `musicalbili config` 管道输入 7 项 → 保存正确（download_dir 字符串化）✅
 - 单测：config 保存/加载往返、向导（mock input）✅（51 passed）
+
+## 踩坑：TUI 选中回车无反应（RowKey.value 为 None）
+
+- **现象**：TUI 能进、能高亮行，但回车无反应。
+- **根因**：`DataTable.add_row()` 不带显式 key 时自动生成 `RowKey` 对象，其 `.value` 是 **None**；`on_data_table_row_selected` 里 `int(event.row_key.value)` 抛 TypeError → handler 静默失败。
+- **修复**：改用 `DataTable.get_row_index(event.row_key)` 取行索引 → `musicalbili/tui.py:on_data_table_row_selected`。
+- **验证**：headless `pilot` 下 `down+enter` 选中第 2 行 → pipeline 被调用（BV2）；新增 `tests/test_tui.py` 回归（`importorskip("textual")`）✅（53 passed）
