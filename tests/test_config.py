@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from musicalbili.config import Config
+from bilimuse.config import Config
 
 
 def test_config_save_load_roundtrip(tmp_path):
@@ -20,7 +20,7 @@ def test_config_save_load_roundtrip(tmp_path):
 
 
 def test_config_wizard(monkeypatch, tmp_path):
-    from musicalbili.cli import config as config_cmd
+    from bilimuse.cli import config as config_cmd
 
     cfg_path = tmp_path / "config.json"
     answers = iter(["D:/Music", "mp3", "netease,lrclib", "n", "base", "n", ""])

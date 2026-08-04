@@ -1,4 +1,4 @@
-// MusicalBILI Web 前端（原生 JS）
+// BiliMuse Web 前端（原生 JS）
 "use strict";
 
 const $ = (sel) => document.querySelector(sel);

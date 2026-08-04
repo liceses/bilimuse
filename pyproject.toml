@@ -1,5 +1,5 @@
 [project]
-name = "musicalbili"
+name = "bilimuse"
 version = "0.1.0"
 description = "Bilibili 音乐下载器：搜索/选版本/下载/打标签/配歌词/校准时间轴"
 requires-python = ">=3.11"
@@ -36,7 +36,7 @@ dev = [
 ]
 
 [project.scripts]
-musicalbili = "musicalbili.cli:app"
+bilimuse = "bilimuse.cli:app"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -44,10 +44,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["musicalbili*"]
+include = ["bilimuse*"]
 
 [tool.setuptools.package-data]
-musicalbili = ["web/static/*"]
+bilimuse = ["web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

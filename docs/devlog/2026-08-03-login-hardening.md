@@ -8,7 +8,7 @@
 
 - 目标：B 站扫码登录降风控；消除红级接口风险（B站搜索单端点、网易云仅明文旧版）
 - 验收标准：
-  - `musicalbili login` 终端二维码 → 手机扫码 → SESSDATA 写入 config
+  - `bilimuse login` 终端二维码 → 手机扫码 → SESSDATA 写入 config
   - 登录后 B 站搜索优先 wbi 端点、不再 v_voucher；失败自动回退旧版
   - 网易云明文失败时自动降级 weapi 兜底
   - `doctor --network` 逐源探测连通性
@@ -23,7 +23,7 @@
 
 ## 技巧
 
-- `qrcode.QRCode().print_ascii(invert=True)`：终端渲染二维码，无需 PIL → `musicalbili/services/auth.py:22`
+- `qrcode.QRCode().print_ascii(invert=True)`：终端渲染二维码，无需 PIL → `bilimuse/services/auth.py:22`
 - passport `qrcode/poll` 的**外层 `code` 恒为 0**（请求成功），真实状态在 `data.code`（86101 未扫 / 86090 待确认 / 0 成功带 Set-Cookie / 86038 过期）→ `auth.py:57`
 - SESSDATA 提取：`set-cookie` 头按 `;` 拆分找 `SESSDATA=` → `auth.py:27`
 - B 站搜索双端点：登录态先试 wbi，`data.get("result")` 为空即 v_voucher 风控，回退旧版 → `providers/bilibili.py:119`
@@ -56,10 +56,10 @@
 
 ## 验证
 
-- `musicalbili doctor --network`：B站搜索 OK / 咪咕 OK(20) / 网易云 OK(源=netease) ✅
+- `bilimuse doctor --network`：B站搜索 OK / 咪咕 OK(20) / 网易云 OK(源=netease) ✅
 - weapi 搜索实测：`weapi/search/get/web` 返回 3 条；封面 `_cover_weapi` 返回 `p1.music.126.net/...` ✅
 - 扫码登录冒烟：generate → 终端渲染二维码 → 轮询 → 超时抛 `LoginError 登录超时`（完整链路通，待真人扫码验证）✅
 - B 站搜索回归（未登录→旧版）：`doctor --network` B站搜索 OK ✅
 - `python -m pytest tests -q`：21 passed ✅
-- `python -m ruff check musicalbili tests`：All checks passed ✅
+- `python -m ruff check bilimuse tests`：All checks passed ✅
 

@@ -1,4 +1,4 @@
-"""日志初始化：文件滚动 + console WARNING。幂等配置 musicalbili 命名空间。"""
+"""日志初始化：文件滚动 + console WARNING。幂等配置 bilimuse 命名空间。"""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 from .config import default_config_dir
 
 _FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
-_NAMESPACE = "musicalbili"
+_NAMESPACE = "bilimuse"
 
 
 def log_dir() -> Path:
@@ -28,7 +28,7 @@ def setup_logging(level: str | None = None, console_warning: bool = True) -> Non
         h.close()
     d = log_dir()
     d.mkdir(parents=True, exist_ok=True)
-    fh = RotatingFileHandler(d / "musicalbili.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
+    fh = RotatingFileHandler(d / "bilimuse.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
     fh.setFormatter(logging.Formatter(_FORMAT))
     root.addHandler(fh)
     if console_warning:

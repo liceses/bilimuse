@@ -1,10 +1,10 @@
 """M8 便携模式测试。"""
 
-from musicalbili.config import default_config_dir, is_portable
+from bilimuse.config import default_config_dir, is_portable
 
 
 def _use_tmp_root(monkeypatch, tmp_path):
-    monkeypatch.setattr("musicalbili.config.project_root", lambda: tmp_path)
+    monkeypatch.setattr("bilimuse.config.project_root", lambda: tmp_path)
 
 
 def test_standard_mode(monkeypatch, tmp_path):

@@ -1,4 +1,4 @@
-# MusicalBILI 一键部署（Windows）
+# BiliMuse 一键部署（Windows）
 # 用法:  .\setup.ps1                # 轻量模式（仅 m4a，无 ffmpeg）
 #        .\setup.ps1 -WithFfmpeg    # 完整模式（含 imageio-ffmpeg，支持 mp3/flac）
 #        .\setup.ps1 -Portable      # 便携模式（运行时文件放项目 data/）
@@ -43,11 +43,11 @@ if ($Portable) {
     }
 }
 Write-Host "完成。使用方式:"
-Write-Host "  cmd 项目目录直接:  musicalbili tui / musicalbili get 歌名"
-Write-Host "  PowerShell 项目目录:  .\musicalbili tui"
-Write-Host "  激活后任意目录:      .\.venv\Scripts\Activate.ps1 然后 musicalbili"
-Write-Host "  一键启动 TUI:        双击 musicalbili-tui.cmd"
-Write-Host "  一键配置向导:        双击 musicalbili-config.cmd"
+Write-Host "  cmd 项目目录直接:  bilimuse tui / bilimuse get 歌名"
+Write-Host "  PowerShell 项目目录:  .\bilimuse tui"
+Write-Host "  激活后任意目录:      .\.venv\Scripts\Activate.ps1 然后 bilimuse"
+Write-Host "  一键启动 TUI:        双击 bilimuse-tui.cmd"
+Write-Host "  一键配置向导:        双击 bilimuse-config.cmd"
 if (-not $WithFfmpeg) {
     Write-Host "提示: 需要 mp3/flac 时用 .\setup.ps1 -WithFfmpeg 重装"
 }

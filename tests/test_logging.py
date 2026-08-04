@@ -4,12 +4,12 @@ import logging
 
 import pytest
 
-from musicalbili.logging_setup import get_logger, setup_logging
-from musicalbili.status import emit, register_display
+from bilimuse.logging_setup import get_logger, setup_logging
+from bilimuse.status import emit, register_display
 
 
 def _reset():
-    root = logging.getLogger("musicalbili")
+    root = logging.getLogger("bilimuse")
     for h in list(root.handlers):
         root.removeHandler(h)
         h.close()
@@ -23,11 +23,11 @@ def _clean():
 
 
 def _log_path(tmp_path):
-    return tmp_path / "logs" / "musicalbili.log"
+    return tmp_path / "logs" / "bilimuse.log"
 
 
 def test_setup_logging_creates_file(monkeypatch, tmp_path):
-    monkeypatch.setattr("musicalbili.logging_setup.default_config_dir", lambda: tmp_path)
+    monkeypatch.setattr("bilimuse.logging_setup.default_config_dir", lambda: tmp_path)
     setup_logging("INFO", console_warning=False)
     get_logger("test").info("hello log")
     content = _log_path(tmp_path).read_text(encoding="utf-8")
@@ -35,7 +35,7 @@ def test_setup_logging_creates_file(monkeypatch, tmp_path):
 
 
 def test_emit_double_write(monkeypatch, tmp_path):
-    monkeypatch.setattr("musicalbili.logging_setup.default_config_dir", lambda: tmp_path)
+    monkeypatch.setattr("bilimuse.logging_setup.default_config_dir", lambda: tmp_path)
     setup_logging("INFO", console_warning=False)
     received: list[dict] = []
     register_display(received.append)
@@ -45,7 +45,7 @@ def test_emit_double_write(monkeypatch, tmp_path):
 
 
 def test_level_filter(monkeypatch, tmp_path):
-    monkeypatch.setattr("musicalbili.logging_setup.default_config_dir", lambda: tmp_path)
+    monkeypatch.setattr("bilimuse.logging_setup.default_config_dir", lambda: tmp_path)
     setup_logging("DEBUG", console_warning=False)
     received: list[dict] = []
     register_display(received.append)

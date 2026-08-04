@@ -6,9 +6,9 @@ import pytest
 
 textual = pytest.importorskip("textual")
 
-from musicalbili.models import VideoVersion
-from musicalbili.services.search import SearchHit
-from musicalbili.tui import MusicalbiliApp
+from bilimuse.models import VideoVersion
+from bilimuse.services.search import SearchHit
+from bilimuse.tui import MusicalbiliApp
 
 
 def _hit(bvid: str, title: str) -> SearchHit:
@@ -34,7 +34,7 @@ async def _mount(app):
 
 
 def test_tui_search_and_select(monkeypatch):
-    from musicalbili import tui
+    from bilimuse import tui
 
     calls: list[str] = []
 

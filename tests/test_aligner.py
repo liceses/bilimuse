@@ -1,7 +1,7 @@
 """模型检测/解析单元测试。"""
 
-from musicalbili.config import Config
-from musicalbili.services.aligner import resolve_model
+from bilimuse.config import Config
+from bilimuse.services.aligner import resolve_model
 
 
 def test_resolve_model_local(tmp_path):

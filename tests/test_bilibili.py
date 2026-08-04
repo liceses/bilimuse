@@ -1,6 +1,6 @@
 """B 站客户端纯函数测试（不联网）。"""
 
-from musicalbili.providers.bilibili import _parse_duration, _strip_html
+from bilimuse.providers.bilibili import _parse_duration, _strip_html
 
 
 def test_parse_duration():

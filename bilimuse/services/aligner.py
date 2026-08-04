@@ -64,7 +64,7 @@ def resolve_model(cfg: Config) -> dict:
     cached = _hf_cache_dir() / f"models--Systran--faster-whisper-{m}"
     if cached.is_dir() and any(cached.rglob("model.bin")):
         return {"used": m, "kind": "cached", "note": "HF 缓存"}
-    return {"used": m, "kind": "missing", "note": "未找到，可 `musicalbili model download` 下载"}
+    return {"used": m, "kind": "missing", "note": "未找到，可 `bilimuse model download` 下载"}
 
 
 async def download_model(

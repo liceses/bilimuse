@@ -13,7 +13,7 @@ from .services.search import SearchHit, search_versions
 
 
 class MusicalbiliApp(App):
-    TITLE = "MusicalBILI"
+    TITLE = "BiliMuse"
 
     def __init__(self, config: Path | None = None, **kwargs: object) -> None:
         super().__init__(**kwargs)

@@ -2,11 +2,11 @@
 
 import asyncio
 
-import musicalbili.services.lyric as lym
-from musicalbili.config import Config
-from musicalbili.models import Lyric, SongMeta
-from musicalbili.services.aligner import _apply_alignment, _linear_fit, _robust_fit, calibrate_quick
-from musicalbili.services.lyric import (
+import bilimuse.services.lyric as lym
+from bilimuse.config import Config
+from bilimuse.models import Lyric, SongMeta
+from bilimuse.services.aligner import _apply_alignment, _linear_fit, _robust_fit, calibrate_quick
+from bilimuse.services.lyric import (
     clean_netease,
     detect_lyric_language,
     merge_translation,
@@ -197,7 +197,7 @@ class _FakeNetease:
 
 
 def test_from_netease_bilingual(monkeypatch):
-    monkeypatch.setattr("musicalbili.providers.meta.NeteaseMeta", _FakeNetease)
+    monkeypatch.setattr("bilimuse.providers.meta.NeteaseMeta", _FakeNetease)
     lyric = asyncio.run(lym._from_netease_bilingual(Config(), None, "One Last Kiss"))
     assert lyric is not None and lyric.source == "netease"
     texts = [tx for _, tx in parse_lrc(lyric.text)]

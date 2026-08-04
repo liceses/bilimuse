@@ -1,8 +1,8 @@
 """M2 单元测试：文件名渲染 + 下载库去重 + ffmpeg 查找。"""
 
-from musicalbili.config import Config
-from musicalbili.db import DownloadDB
-from musicalbili.services.download import find_ffmpeg, render_filename, sanitize_filename
+from bilimuse.config import Config
+from bilimuse.db import DownloadDB
+from bilimuse.services.download import find_ffmpeg, render_filename, sanitize_filename
 
 
 def test_sanitize_filename():
@@ -37,19 +37,19 @@ def test_find_ffmpeg_config_path_first(monkeypatch):
 
 def test_find_ffmpeg_system_path(monkeypatch):
     cfg = Config()
-    monkeypatch.setattr("musicalbili.services.download.shutil.which", lambda name: "ffmpeg")
+    monkeypatch.setattr("bilimuse.services.download.shutil.which", lambda name: "ffmpeg")
     assert find_ffmpeg(cfg) == "ffmpeg"
 
 
 def test_find_ffmpeg_bundled_fallback(monkeypatch):
     cfg = Config()
-    monkeypatch.setattr("musicalbili.services.download.shutil.which", lambda name: None)
+    monkeypatch.setattr("bilimuse.services.download.shutil.which", lambda name: None)
     monkeypatch.setitem(__import__("sys").modules, "imageio_ffmpeg", type("_m", (), {"get_ffmpeg_exe": lambda: "/bundle/ffmpeg"}))
     assert find_ffmpeg(cfg) == "/bundle/ffmpeg"
 
 
 def test_find_ffmpeg_none(monkeypatch):
     cfg = Config()
-    monkeypatch.setattr("musicalbili.services.download.shutil.which", lambda name: None)
+    monkeypatch.setattr("bilimuse.services.download.shutil.which", lambda name: None)
     monkeypatch.setitem(__import__("sys").modules, "imageio_ffmpeg", None)
     assert find_ffmpeg(cfg) is None

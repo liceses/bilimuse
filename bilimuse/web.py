@@ -23,7 +23,7 @@ from .services.search import search_versions
 
 STATIC = Path(__file__).parent / "web" / "static"
 
-app = FastAPI(title="MusicalBILI")
+app = FastAPI(title="BiliMuse")
 
 
 def _serialize(obj):

@@ -1,4 +1,4 @@
-# MusicalBILI 技术方案
+# BiliMuse 技术方案
 
 ## 目标
 
@@ -22,14 +22,14 @@ B 站深度定制的音乐下载器：输入歌名/歌手/**歌词片段** → �
 - 日志：`logging_setup.py`（文件滚动 + console WARNING）+ `status.py`（**统一状态通道**：emit 一次，UI 显示与日志双写，provider 级解析状态）
 - CLI：`typer`（基础命令）+ `textual`（交互式搜索/选版本）
 - Web：`fastapi` + 单页前端（挂核心库，二期）
-- 部署：`setup.ps1` / `setup.sh` 一键装依赖；`musicalbili doctor` 检测环境
+- 部署：`setup.ps1` / `setup.sh` 一键装依赖；`bilimuse doctor` 检测环境
 
 ## 目录结构
 
 ```
-MusicalBILI/
+BiliMuse/
 ├── pyproject.toml
-├── musicalbili/
+├── bilimuse/
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── config.py        # 下载目录/格式/cookie/文件名模板/校准开关
@@ -107,7 +107,7 @@ MusicalBILI/
 
 | 风险 | 对策 |
 |---|---|
-| B站搜索风控（匿名 v_voucher / -412） | **扫码登录降风控**（`musicalbili login` 存 SESSDATA）；搜索**双端点自动降级**：登录态优先 wbi → 失败回退旧版；Wbi 签名 + buvid3 + 合理 UA/Referer；失败重试+退避 |
+| B站搜索风控（匿名 v_voucher / -412） | **扫码登录降风控**（`bilimuse login` 存 SESSDATA）；搜索**双端点自动降级**：登录态优先 wbi → 失败回退旧版；Wbi 签名 + buvid3 + 合理 UA/Referer；失败重试+退避 |
 | 网易云逆向接口变动 | **明文旧版 → weapi 双端点自动降级**（weapi 为官方网页主链路，长期稳定）；接口层抽象，多源降级；LRCLIB 为歌词主源避免主链路依赖逆向 |
 | whisper 对歌唱识别不准 | 语言自动检测（假名/汉字/咪咕tags）勿硬编码 zh；调参（关 VAD、CJK 阈值、必要时人声分离）；锚点线性拟合回退；仅失配时启用 |
 | ffmpeg 缺失 | ffmpeg 为可选 extra（imageio-ffmpeg 内嵌，PyPI 拉取不经 GitHub）；查找链 config→系统PATH→内置；缺失仅 mp3/flac 报错并给出安装指引，m4a 不受影响 |
@@ -120,8 +120,8 @@ MusicalBILI/
 - **完整（mp3/flac）**：`pip install -e ".[ffmpeg]"`，imageio-ffmpeg 从 PyPI（国内可用清华镜像）拉取 ~60MB 静态 ffmpeg 到 venv，装完即离线可用。
 - **歌词精确校准**：`pip install -e ".[align]"` 装 lyric-align（faster-whisper）；模型国内从 ModelScope 下载后 `whisper_model` 指向本地路径。
 - `setup.ps1` / `setup.sh`：一键完成 venv + 依赖，`--with-ffmpeg` 开关加装完整模式。
-- `musicalbili doctor`：检测 Python / ffmpeg（config→系统PATH→内置）/ 配置目录，输出修复指引。
-- **登录降风控**：`musicalbili login` 手机扫码登录 B 站（存 SESSDATA），大幅降低搜索风控、提升音质、解锁 AI 字幕；`logout` 清除。
+- `bilimuse doctor`：检测 Python / ffmpeg（config→系统PATH→内置）/ 配置目录，输出修复指引。
+- **登录降风控**：`bilimuse login` 手机扫码登录 B 站（存 SESSDATA），大幅降低搜索风控、提升音质、解锁 AI 字幕；`logout` 清除。
 
 ## 里程碑
 

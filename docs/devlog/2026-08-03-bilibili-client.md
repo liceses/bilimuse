@@ -10,7 +10,7 @@
 - 验收标准：
   - 搜索"歌名+歌手"能返回 B 站视频版本列表（bvid/标题/UP主/时长/播放量/封面）✅
   - playurl 能拿到 DASH 纯音频流 URL（未登录降级到基础音质）✅
-  - typer 命令 `musicalbili search "关键词"` 能列出结果 ✅
+  - typer 命令 `bilimuse search "关键词"` 能列出结果 ✅
 
 ## 方案与思路（含否决方案）
 
@@ -21,7 +21,7 @@
 
 ## 技巧
 
-- 访问 B 站任何 API 前先 GET 一次 `https://www.bilibili.com/` 拿 `buvid3`/`b_nut` cookie，否则接口被 -412 拦截 → `musicalbili/providers/bilibili.py:47`
+- 访问 B 站任何 API 前先 GET 一次 `https://www.bilibili.com/` 拿 `buvid3`/`b_nut` cookie，否则接口被 -412 拦截 → `bilimuse/providers/bilibili.py:47`
 - 请求须带浏览器 UA + `Referer: https://www.bilibili.com/`，httpx 必须 `trust_env=False`（见踩坑）→ `bilibili.py:27`
 - playurl 用 `fnval=4048` 一次性返回全部可用 DASH 流（含 flac/dolby），免多次探测 → `bilibili.py:146`
 - `httpx.AsyncClient` 传入 `cookies=dict` 会转成 CookieJar 并自动保存 Set-Cookie，跨请求复用 → `bilibili.py:30`
@@ -49,7 +49,7 @@
 3. **httpx 0.28 在 Windows 自动读取注册表代理**
    现象：请求走 `http://127.0.0.1:10808`（用户系统代理）导致 TLS 连接失败，但 `Get-ChildItem Env:` 查不到任何代理。
    原因：httpx 新版在 Windows 从 WinINET 注册表读取系统代理（`get_environment_proxies` 返回 `{'http://': 'http://127.0.0.1:10808', ...}`），与旧版仅读环境变量不同。
-   解决：`trust_env=False`，代理改为 config 显式 `proxy` 字段 → `bilibili.py:34`、`musicalbili/config.py:26`。
+   解决：`trust_env=False`，代理改为 config 显式 `proxy` 字段 → `bilibili.py:34`、`bilimuse/config.py:26`。
 4. **搜索标题含 HTML 高亮标签**
    现象：标题里出现 `<em class="keyword">周杰伦</em>`。
    解决：`re.sub(r"<[^>]+>", "", s)` → `bilibili.py:216`。
@@ -61,9 +61,9 @@
 ## 验证
 
 - `python -m pytest tests -q`：2 passed ✅
-- `python -m ruff check musicalbili tests`：All checks passed ✅
-- `python -m musicalbili search "周杰伦 晴天" --limit 5`：返回 5 条 B 站版本（BV号/分区/时长/播放量/UP主/标题/封面），标题已剥除 `<em class="keyword">` ✅
-- `python -m musicalbili info BV1d4411N7zD`：标题「【4K修复】周杰伦 - 晴天MV 2160P修复版」、作者 zyl2012_音乐无限、cid=317843818、分P 列表正确 ✅
+- `python -m ruff check bilimuse tests`：All checks passed ✅
+- `python -m bilimuse search "周杰伦 晴天" --limit 5`：返回 5 条 B 站版本（BV号/分区/时长/播放量/UP主/标题/封面），标题已剥除 `<em class="keyword">` ✅
+- `python -m bilimuse info BV1d4411N7zD`：标题「【4K修复】周杰伦 - 晴天MV 2160P修复版」、作者 zyl2012_音乐无限、cid=317843818、分P 列表正确 ✅
 - playurl 实测（未登录）：
   ```
   AAC 轨 3 条: id=30216 bw=38231 / id=30232 bw=84710 / id=30280 bw=169316

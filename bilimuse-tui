@@ -1,0 +1,9 @@
+﻿#!/usr/bin/env bash
+# bilimuse 一键启动 Textual 交互界面
+set -e
+cd "$(dirname "${BASH_SOURCE[0]}")"
+if [ ! -f .venv/bin/python ]; then
+    echo "[bilimuse] 未找到虚拟环境，请先运行 ./setup.sh"
+    exit 1
+fi
+exec .venv/bin/python -m bilimuse tui "$@"

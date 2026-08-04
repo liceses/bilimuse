@@ -6,7 +6,7 @@
 
 ## 目标与验收
 
-- 目标：`musicalbili get "歌名/歌词"` 一键闭环（搜索→选版本→下载→打标签→配歌词校准→入库）；编排抽成服务供 CLI/TUI/Web 复用；Textual 交互式界面
+- 目标：`bilimuse get "歌名/歌词"` 一键闭环（搜索→选版本→下载→打标签→配歌词校准→入库）；编排抽成服务供 CLI/TUI/Web 复用；Textual 交互式界面
 - 验收标准：
   - **歌词片段搜索**：输入一句歌词 → 反查真实歌名 → B站 返回正确版本 ✅
   - `get` 交互选序号 + `--index`/`--auto` 脚本化 ✅
@@ -47,26 +47,26 @@
 ## 验证
 
 - `search_versions('窗外的麻雀 在电线杆上多嘴')`：10 条，前 5 为 lyric 反查（真七里香版本，播放 2600万），含 direct 琴谱 ✅
-- `musicalbili get "窗外的麻雀 在电线杆上多嘴" --auto`：歌词反查→选中→下载→migu「周杰伦 - 七里香」→LRCLIB 歌词→.lrc ✅
+- `bilimuse get "窗外的麻雀 在电线杆上多嘴" --auto`：歌词反查→选中→下载→migu「周杰伦 - 七里香」→LRCLIB 歌词→.lrc ✅
 - TUI headless：挂载 8 控件；输入"晴天 周杰伦"→ DataTable 20 行（首行晴天MV）✅
 - 单测：`search_versions` 两路合并/去重/关闭开关；`download_song_pipeline` 事件流/`--no-tag --no-lyric` ✅（49 passed）
-- `python -m ruff check musicalbili tests`：All checks passed ✅
+- `python -m ruff check bilimuse tests`：All checks passed ✅
 
 ## 运行便利化：命令 shim + 一键脚本 + 配置向导（同日补充）
 
 ### 问题
 
-- `musicalbili.exe` 已生成，但 venv 未激活时 `.venv\Scripts` 不在 PATH → 终端输入 `musicalbili` 找不到命令。
+- `bilimuse.exe` 已生成，但 venv 未激活时 `.venv\Scripts` 不在 PATH → 终端输入 `bilimuse` 找不到命令。
 - 决策：**不改用户 PATH**，用项目目录 shim + 一键脚本解决。
 
 ### 实现
 
-1. **shim**：`musicalbili.cmd`（Win）/ `musicalbili.sh`（Unix）→ 调 `.venv` 内 python `-m musicalbili`。
-   - cmd 项目目录直接 `musicalbili tui`；PS 用 `.\musicalbili`；激活 venv 后任意目录 `musicalbili`。
-   - **踩坑**：Unix 下 `musicalbili` 与包目录 `musicalbili/` 同名冲突 → Unix 通用 shim 改名 `musicalbili.sh`。
+1. **shim**：`bilimuse.cmd`（Win）/ `bilimuse.sh`（Unix）→ 调 `.venv` 内 python `-m bilimuse`。
+   - cmd 项目目录直接 `bilimuse tui`；PS 用 `.\bilimuse`；激活 venv 后任意目录 `bilimuse`。
+   - **踩坑**：Unix 下 `bilimuse` 与包目录 `bilimuse/` 同名冲突 → Unix 通用 shim 改名 `bilimuse.sh`。
    - **踩坑**：`.cmd` 文件含中文注释在 cmd.exe(GBK) 下解析崩（`rem` 被破坏）→ `.cmd` 只写 ASCII。
-2. **一键脚本**：`musicalbili-tui.cmd`/`musicalbili-tui`（双击进 TUI）、`musicalbili-config.cmd`/`musicalbili-config`（双击配置向导）。
-3. **`musicalbili config` 交互向导**：下载目录/格式/歌词源/校准开关/whisper模型/扫码登录/代理 七项，免手编 json，保存+摘要。
+2. **一键脚本**：`bilimuse-tui.cmd`/`bilimuse-tui`（双击进 TUI）、`bilimuse-config.cmd`/`bilimuse-config`（双击配置向导）。
+3. **`bilimuse config` 交互向导**：下载目录/格式/歌词源/校准开关/whisper模型/扫码登录/代理 七项，免手编 json，保存+摘要。
 4. **setup.ps1/sh**：安装后打印运行方式；README 部署节三表。
 
 ### 踩坑
@@ -76,15 +76,15 @@
 
 ### 验证
 
-- `.\musicalbili.cmd --help` / `.\musicalbili.cmd tui --help`：shim 生效 ✅
-- `musicalbili config` 管道输入 7 项 → 保存正确（download_dir 字符串化）✅
+- `.\bilimuse.cmd --help` / `.\bilimuse.cmd tui --help`：shim 生效 ✅
+- `bilimuse config` 管道输入 7 项 → 保存正确（download_dir 字符串化）✅
 - 单测：config 保存/加载往返、向导（mock input）✅（51 passed）
 
 ## 踩坑：TUI 选中回车无反应（RowKey.value 为 None）
 
 - **现象**：TUI 能进、能高亮行，但回车无反应。
 - **根因**：`DataTable.add_row()` 不带显式 key 时自动生成 `RowKey` 对象，其 `.value` 是 **None**；`on_data_table_row_selected` 里 `int(event.row_key.value)` 抛 TypeError → handler 静默失败。
-- **修复**：改用 `DataTable.get_row_index(event.row_key)` 取行索引 → `musicalbili/tui.py:on_data_table_row_selected`。
+- **修复**：改用 `DataTable.get_row_index(event.row_key)` 取行索引 → `bilimuse/tui.py:on_data_table_row_selected`。
 - **验证**：headless `pilot` 下 `down+enter` 选中第 2 行 → pipeline 被调用（BV2）；新增 `tests/test_tui.py` 回归（`importorskip("textual")`）✅（53 passed）
 
 ## Bug 修复（Beautiful World 标签 + whisper 卡住 + TUI 进度细化）
@@ -126,7 +126,7 @@
 ### 能力
 
 1. **检测**：`detect_models()` 扫 `models/`（本地）+ HF 缓存 `~/.cache/huggingface/hub/models--Systran--faster-whisper-*`；`resolve_model()` 解析 `whisper_model` → 本地/缓存/缺失。
-2. **CLI `musicalbili model`**：`list`（检测+配置解析+可下载名单+依赖状态）、`download <size> [--source modelscope|hf] [--no-set]`、`set <size|path>`。
+2. **CLI `bilimuse model`**：`list`（检测+配置解析+可下载名单+依赖状态）、`download <size> [--source modelscope|hf] [--no-set]`、`set <size|path>`。
 3. **进度（步骤级）**：`calibrate_align` 去 `-q`，**流式读 stderr** → 每行 emit 状态（"转写中…/分段 N/匹配阈值/对齐 X/Y 行/wrote out.json"）；跑前 emit **"使用模型: <resolved>（本地/HF缓存/待下载）"**。
 4. **doctor**：显示 lyric-align/faster-whisper 安装状态 + resolved 模型 + 检测列表。
 5. **下载**：ModelScope（默认，国内快）`www.modelscope.cn/models/Systran/faster-whisper-<size>/resolve/master/`，文件 404 跳过（config/model.bin/tokenizer/vocabulary）；`--source hf` 走 HF_ENDPOINT 镜像。

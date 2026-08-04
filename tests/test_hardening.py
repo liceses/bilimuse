@@ -3,10 +3,10 @@
 import asyncio
 import base64
 
-from musicalbili.config import Config
-from musicalbili.providers.bilibili import BilibiliClient
-from musicalbili.providers.meta import _weapi_params
-from musicalbili.services.auth import _extract_cookie
+from bilimuse.config import Config
+from bilimuse.providers.bilibili import BilibiliClient
+from bilimuse.providers.meta import _weapi_params
+from bilimuse.services.auth import _extract_cookie
 
 
 def test_weapi_params():

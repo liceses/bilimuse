@@ -10,7 +10,7 @@
 - 验收标准：
   - 多源反查能命中真实曲目（含周杰伦等版权曲目）✅
   - 打标签支持 m4a(MP4) / mp3(ID3) / flac(VorbisComment)，含封面内嵌 ✅
-  - `musicalbili tag <文件> --query "..."` 可打标签并回读验证 ✅
+  - `bilimuse tag <文件> --query "..."` 可打标签并回读验证 ✅
   - download 集成自动打标签（`--no-tag` 跳过）✅
 
 ## 方案与思路（含否决方案）
@@ -29,7 +29,7 @@
 
 ## 技巧
 
-- 标题清洗 `clean_title`：剥 `【】`、括号、循环剥尾部 `MV/4K/修复版/现场/翻唱` 等 token，再 `split_query` 拆出「歌手 - 歌名」→ `musicalbili/services/tagger.py:30`
+- 标题清洗 `clean_title`：剥 `【】`、括号、循环剥尾部 `MV/4K/修复版/现场/翻唱` 等 token，再 `split_query` 拆出「歌手 - 歌名」→ `bilimuse/services/tagger.py:30`
 - 匹配评分：歌名相似度 + 歌手命中加分（`_norm_artist` 剥尾标点，`周杰伦-`→`周杰伦`），歌手不符罚 0.4；阈值 0.5 → `tagger.py:55`
 - 多源顺序即优先级：`search_metadata` 按 providers 顺序返回首个命中，咪咕在前 → `tagger.py:152`
 - mutagen 打标签：m4a 用 `\xa9nam/\xa9ART/\xa9alb/covr`，mp3 用 `TIT2/TPE1/TALB/APIC(encoding=3 UTF-8)`，flac 用 VorbisComment + `add_picture` → `tagger.py:100`
@@ -51,10 +51,10 @@
 
 ## 验证
 
-- `musicalbili tag` 对错标的 m4a 反查"周杰伦 - 晴天"：命中**咪咕**原版 `晴天/周杰伦/叶惠美`，重命名 `周杰伦 - 晴天.m4a` ✅
+- `bilimuse tag` 对错标的 m4a 反查"周杰伦 - 晴天"：命中**咪咕**原版 `晴天/周杰伦/叶惠美`，重命名 `周杰伦 - 晴天.m4a` ✅
 - 封面：原 webp 转 jpeg，内嵌 75982 bytes，magic `\xff\xd8\xff` ✅
-- 端到端 `musicalbili download BV1M4411P7gM --format m4a`：下载 → 咪咕匹配「周杰伦 - 搁浅」→ 打标签重命名 ✅
+- 端到端 `bilimuse download BV1M4411P7gM --format m4a`：下载 → 咪咕匹配「周杰伦 - 搁浅」→ 打标签重命名 ✅
   - 回读：`title=['搁浅'] artist=['周杰伦'] album=['七里香'] cover=True(69892B jpeg)` ✅
-- `musicalbili list-downloads`：历史记录含真实标签 ✅
+- `bilimuse list-downloads`：历史记录含真实标签 ✅
 - `python -m pytest tests -q`：17 passed ✅
-- `python -m ruff check musicalbili tests`：All checks passed ✅
+- `python -m ruff check bilimuse tests`：All checks passed ✅

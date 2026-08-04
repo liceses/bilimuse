@@ -3,10 +3,10 @@
 import asyncio
 from pathlib import Path
 
-from musicalbili.config import Config
-from musicalbili.models import Lyric, SongMeta, VideoDetail, VideoPage, VideoVersion
-from musicalbili.services.pipeline import download_song_pipeline
-from musicalbili.services.search import search_versions
+from bilimuse.config import Config
+from bilimuse.models import Lyric, SongMeta, VideoDetail, VideoPage, VideoVersion
+from bilimuse.services.pipeline import download_song_pipeline
+from bilimuse.services.search import search_versions
 
 
 def _v(bvid: str, title: str, play: int) -> VideoVersion:
@@ -34,12 +34,12 @@ def test_search_versions_lyric_reverse(monkeypatch):
     direct = [_v("BV1", "消失的下雨天 我好想再淋一遍", 100)]
     lyric = [_v("BV2", "周杰伦 - 七里香", 1000)]
     b = _FakeB({"窗外的麻雀 在电线杆上多嘴": direct, "七里香": lyric})
-    monkeypatch.setattr("musicalbili.services.search.BilibiliClient", lambda cfg: b)
+    monkeypatch.setattr("bilimuse.services.search.BilibiliClient", lambda cfg: b)
 
     async def fake_titles(cfg, query, top=3):
         return ["七里香"]
 
-    monkeypatch.setattr("musicalbili.services.search._lyric_to_titles", fake_titles)
+    monkeypatch.setattr("bilimuse.services.search._lyric_to_titles", fake_titles)
     cfg = Config()
     hits = asyncio.run(search_versions(cfg, "窗外的麻雀 在电线杆上多嘴"))
     assert len(hits) == 2
@@ -50,12 +50,12 @@ def test_search_versions_lyric_reverse(monkeypatch):
 def test_search_versions_skip_when_title_in_query(monkeypatch):
     direct = [_v("BV1", "周杰伦 - 晴天", 500)]
     b = _FakeB({"周杰伦 晴天": direct})
-    monkeypatch.setattr("musicalbili.services.search.BilibiliClient", lambda cfg: b)
+    monkeypatch.setattr("bilimuse.services.search.BilibiliClient", lambda cfg: b)
 
     async def fake_titles(cfg, query, top=3):
         return ["晴天"]
 
-    monkeypatch.setattr("musicalbili.services.search._lyric_to_titles", fake_titles)
+    monkeypatch.setattr("bilimuse.services.search._lyric_to_titles", fake_titles)
     cfg = Config()
     hits = asyncio.run(search_versions(cfg, "周杰伦 晴天"))
     assert len(hits) == 1 and hits[0].source == "direct"
@@ -64,12 +64,12 @@ def test_search_versions_skip_when_title_in_query(monkeypatch):
 def test_search_versions_lookup_off(monkeypatch):
     direct = [_v("BV1", "周杰伦 - 晴天", 500)]
     b = _FakeB({"周杰伦 晴天": direct})
-    monkeypatch.setattr("musicalbili.services.search.BilibiliClient", lambda cfg: b)
+    monkeypatch.setattr("bilimuse.services.search.BilibiliClient", lambda cfg: b)
 
     async def fake_titles(cfg, query, top=3):
         raise AssertionError("不应触发歌词反查")
 
-    monkeypatch.setattr("musicalbili.services.search._lyric_to_titles", fake_titles)
+    monkeypatch.setattr("bilimuse.services.search._lyric_to_titles", fake_titles)
     cfg = Config()
     cfg.search_lyric_lookup = False
     hits = asyncio.run(search_versions(cfg, "周杰伦 晴天"))
@@ -123,7 +123,7 @@ async def _fake_lyric(cfg, path, meta, title, bvid, cid, force_align, emit):
 
 
 def test_pipeline_flow(monkeypatch):
-    import musicalbili.services.pipeline as pl
+    import bilimuse.services.pipeline as pl
 
     monkeypatch.setattr(pl, "BilibiliClient", lambda cfg: _FakeDetail())
     monkeypatch.setattr(pl, "download_song", _fake_download)
@@ -144,7 +144,7 @@ def test_pipeline_flow(monkeypatch):
 
 
 def test_pipeline_no_tag_no_lyric(monkeypatch):
-    import musicalbili.services.pipeline as pl
+    import bilimuse.services.pipeline as pl
 
     monkeypatch.setattr(pl, "BilibiliClient", lambda cfg: _FakeDetail())
     monkeypatch.setattr(pl, "download_song", _fake_download)

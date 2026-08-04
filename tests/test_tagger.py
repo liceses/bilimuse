@@ -5,8 +5,8 @@ import asyncio
 from mutagen.id3 import ID3
 from mutagen.mp4 import MP4
 
-from musicalbili.models import SongMeta
-from musicalbili.services.tagger import (
+from bilimuse.models import SongMeta
+from bilimuse.services.tagger import (
     clean_title,
     pick_best,
     search_metadata,

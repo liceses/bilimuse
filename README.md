@@ -1,4 +1,4 @@
-# MusicalBILI
+# BiliMuse
 
 B 站深度定制的音乐下载器：搜索歌名/歌手/歌词 → 选版本 → 下载纯音频 → 自动打标签 → 自动配歌词 → 自动校准时间轴 → 内嵌封面。
 
@@ -33,11 +33,11 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 
 | 方式 | 命令 |
 |---|---|
-| **一键 TUI** | 双击 `musicalbili-tui.cmd`（Win）/ `./musicalbili-tui`（Unix） |
-| **项目目录命令** | cmd: `musicalbili tui`；PowerShell: `.\musicalbili tui`；Unix: `./musicalbili.sh tui` |
-| **激活 venv** | `.\.venv\Scripts\Activate.ps1` 后任意目录 `musicalbili` |
+| **一键 TUI** | 双击 `bilimuse-tui.cmd`（Win）/ `./bilimuse-tui`（Unix） |
+| **项目目录命令** | cmd: `bilimuse tui`；PowerShell: `.\bilimuse tui`；Unix: `./bilimuse.sh tui` |
+| **激活 venv** | `.\.venv\Scripts\Activate.ps1` 后任意目录 `bilimuse` |
 
-首次使用先跑配置向导：双击 `musicalbili-config.cmd` 或 `musicalbili config`（设置下载目录/格式/登录等，免手编 json）。
+首次使用先跑配置向导：双击 `bilimuse-config.cmd` 或 `bilimuse config`（设置下载目录/格式/登录等，免手编 json）。
 
 > 歌词精确校准（可选）：`pip install -e ".[align]"` 装 lyric-align（faster-whisper），歌词时间轴失配时自动强制对齐。语言自动检测（日语歌自动用日语识别），模型默认 `small`（约 460MB），国内推荐从 ModelScope 下载后把 `whisper_model` 配成本地路径：
 > ```
@@ -50,22 +50,22 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 ## 使用
 
 ```bash
-musicalbili get "窗外的麻雀 在电线杆上多嘴"   # 一键闭环：歌词/歌名搜索→选版本→下载→打标签→配歌词校准
-musicalbili get "周杰伦 晴天" --auto          # 自动选第一条（脚本化）
-musicalbili get "晴天" --index 2              # 直接选第 2 条
-musicalbili tui                               # Textual 交互式界面（需 pip install -e ".[tui]"）
-musicalbili web                               # Web 界面（需 pip install -e ".[web]"），默认 http://127.0.0.1:8000
-musicalbili model list                        # 模型检测
-musicalbili model download small              # 下载模型（ModelScope/HF）
-musicalbili search "周杰伦 晴天"     # 搜索 B 站版本
-musicalbili info BV1d4411N7zD        # 查看视频详情/分 P
-musicalbili download BV1d4411N7zD --format mp3   # 下载（自动打标签 + 配歌词校准，写 .lrc）
-musicalbili download BV1d4411N7zD --no-lyric     # 跳过歌词
-musicalbili download BV1d4411N7zD --align        # 歌词强制 whisper 校准
-musicalbili list-downloads           # 下载历史
-musicalbili login                    # 手机扫码登录 B 站（降低风控/提升音质）
-musicalbili logout                   # 退出登录
-musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
+bilimuse get "窗外的麻雀 在电线杆上多嘴"   # 一键闭环：歌词/歌名搜索→选版本→下载→打标签→配歌词校准
+bilimuse get "周杰伦 晴天" --auto          # 自动选第一条（脚本化）
+bilimuse get "晴天" --index 2              # 直接选第 2 条
+bilimuse tui                               # Textual 交互式界面（需 pip install -e ".[tui]"）
+bilimuse web                               # Web 界面（需 pip install -e ".[web]"），默认 http://127.0.0.1:8000
+bilimuse model list                        # 模型检测
+bilimuse model download small              # 下载模型（ModelScope/HF）
+bilimuse search "周杰伦 晴天"     # 搜索 B 站版本
+bilimuse info BV1d4411N7zD        # 查看视频详情/分 P
+bilimuse download BV1d4411N7zD --format mp3   # 下载（自动打标签 + 配歌词校准，写 .lrc）
+bilimuse download BV1d4411N7zD --no-lyric     # 跳过歌词
+bilimuse download BV1d4411N7zD --align        # 歌词强制 whisper 校准
+bilimuse list-downloads           # 下载历史
+bilimuse login                    # 手机扫码登录 B 站（降低风控/提升音质）
+bilimuse logout                   # 退出登录
+bilimuse doctor --network         # 环境诊断 + 数据源连通性探测
 ```
 
 > `get` 支持**歌词片段搜索**：输入一句歌词（如"窗外的麻雀 在电线杆上多嘴"），自动经网易云反查真实歌名 → 再去 B 站选版本。
@@ -83,12 +83,12 @@ pip install -e ".[web]"        # fastapi / uvicorn / websockets
 **2. 启动**
 
 ```bash
-musicalbili web                # 默认 http://127.0.0.1:8000
-musicalbili web --port 9000    # 换端口
-musicalbili web --host 0.0.0.0 # 局域网其他设备访问
+bilimuse web                # 默认 http://127.0.0.1:8000
+bilimuse web --port 9000    # 换端口
+bilimuse web --host 0.0.0.0 # 局域网其他设备访问
 ```
 
-（cmd 下：`.\musicalbili web`；Unix：`./musicalbili.sh web`）
+（cmd 下：`.\bilimuse web`；Unix：`./bilimuse.sh web`）
 
 **3. 浏览器打开** `http://127.0.0.1:8000`
 
@@ -106,12 +106,12 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
 | `WS /ws/download` | WebSocket：发送 `{"bvid":"BV1...","page":1,"format":"m4a"}` → 推送进度事件（`stage`/`progress`/`meta`/`lyric`/`warning`/`result`/`error`） |
 
 **提示**
-- 首次使用先在 `musicalbili config` 向导里登录 B 站（提升音质/风控）并配置 `whisper_model` 为本地模型，Web 端直接生效。
+- 首次使用先在 `bilimuse config` 向导里登录 B 站（提升音质/风控）并配置 `whisper_model` 为本地模型，Web 端直接生效。
 - 下载产物（音频 + `.lrc` 侧车）默认在 `downloads/`（config 的 `download_dir`）。
 
 ## 配置
 
-配置文件位于 `%APPDATA%\musicalbili\config.json`（Windows）或 `~/.config/musicalbili/config.json`（Linux/macOS）：
+配置文件位于 `%APPDATA%\bilimuse\config.json`（Windows）或 `~/.config/bilimuse/config.json`（Linux/macOS）：
 
 ```json
 {
@@ -132,7 +132,7 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
 }
 ```
 
-- `sessdata`：B 站登录 cookie（`musicalbili login` 扫码写入），可提升音质、解锁 AI 字幕歌词兜底。
+- `sessdata`：B 站登录 cookie（`bilimuse login` 扫码写入），可提升音质、解锁 AI 字幕歌词兜底。
 - `proxy`：需要代理访问 B 站时填写。
 - `ffmpeg_path`：显式指定系统 ffmpeg，优先于内嵌版本。
 - `lyric_sources`：歌词源降级顺序。
@@ -145,18 +145,18 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
 
 ## 日志与状态显示
 
-- **日志文件**：`<配置目录>/logs/musicalbili.log`（1MB×3 滚动；Win `%APPDATA%\musicalbili\logs`，Linux `~/.config/musicalbili/logs`）。
+- **日志文件**：`<配置目录>/logs/bilimuse.log`（1MB×3 滚动；Win `%APPDATA%\bilimuse\logs`，Linux `~/.config/bilimuse/logs`）。
 - **统一状态通道**：CLI/TUI/Web 三端动态显示"系统在做什么"——搜索（含歌词反查）、解析元数据（按源：咪咕/网易云）、获取歌词（按源：LRCLIB/网易云/B站字幕）、下载进度、whisper 校准（步骤级）、配置向导（等待输入/已设置）。同一条状态同时写入日志，方便排查。
-- 排查：`musicalbili doctor` 显示日志路径；部署问题看 `setup.log`。
+- 排查：`bilimuse doctor` 显示日志路径；部署问题看 `setup.log`。
 
 ## 便携模式
 
-默认配置文件在系统目录（`%APPDATA%\musicalbili`）。开启**便携模式**后，`config.json`/`downloads.db`/`logs/` 全部移到项目内 `data/`，连同 `downloads/`、`models/`、`.venv/` 都在项目目录里——**整个文件夹拷走即用、即用即下即删即走**，不污染系统环境。
+默认配置文件在系统目录（`%APPDATA%\bilimuse`）。开启**便携模式**后，`config.json`/`downloads.db`/`logs/` 全部移到项目内 `data/`，连同 `downloads/`、`models/`、`.venv/` 都在项目目录里——**整个文件夹拷走即用、即用即下即删即走**，不污染系统环境。
 
 ```bash
-musicalbili portable on     # 开启：创建 .portable，并把现有配置(含登录态)复制到 data/
-musicalbili portable off    # 关闭：删除 .portable（数据保留在 data/）
-musicalbili doctor          # 查看当前 模式(便携/标准) + 配置目录
+bilimuse portable on     # 开启：创建 .portable，并把现有配置(含登录态)复制到 data/
+bilimuse portable off    # 关闭：删除 .portable（数据保留在 data/）
+bilimuse doctor          # 查看当前 模式(便携/标准) + 配置目录
 ```
 
 - 也可用环境变量 `MUSICALBILI_PORTABLE=1`（一次会话）或安装时 `setup.ps1 -Portable` / `setup.sh --portable`。

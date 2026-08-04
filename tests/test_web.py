@@ -5,8 +5,8 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from musicalbili.models import VideoVersion
-from musicalbili.services.search import SearchHit
+from bilimuse.models import VideoVersion
+from bilimuse.services.search import SearchHit
 
 
 def _hit(bvid: str, title: str) -> SearchHit:
@@ -20,15 +20,15 @@ def _hit(bvid: str, title: str) -> SearchHit:
 
 
 def test_index():
-    from musicalbili import web
+    from bilimuse import web
 
     client = TestClient(web.app)
     r = client.get("/")
-    assert r.status_code == 200 and "MusicalBILI" in r.text
+    assert r.status_code == 200 and "BiliMuse" in r.text
 
 
 def test_api_search(monkeypatch):
-    from musicalbili import web
+    from bilimuse import web
 
     async def fake_search(cfg, q, limit=10):
         return [_hit("BV1", "晴天")]
@@ -43,7 +43,7 @@ def test_api_search(monkeypatch):
 
 
 def test_api_doctor():
-    from musicalbili import web
+    from bilimuse import web
 
     client = TestClient(web.app)
     r = client.get("/api/doctor")
@@ -53,7 +53,7 @@ def test_api_doctor():
 
 
 def test_ws_download(monkeypatch):
-    from musicalbili import web
+    from bilimuse import web
 
     async def fake_pipeline(cfg, bvid, page=1, on_event=None, **kw):
         await on_event({"type": "stage", "stage": "download", "text": "下载中"})
@@ -71,7 +71,7 @@ def test_ws_download(monkeypatch):
 
 
 def test_ws_download_error(monkeypatch):
-    from musicalbili import web
+    from bilimuse import web
 
     async def bad_pipeline(cfg, bvid, page=1, on_event=None, **kw):
         raise RuntimeError("去重跳过")

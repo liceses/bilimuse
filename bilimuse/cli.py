@@ -231,7 +231,7 @@ def web(
     except ImportError as e:
         typer.echo(f"需要安装 Web 依赖: pip install -e '.[web]'（{e}）", err=True)
         raise typer.Exit(code=1) from e
-    typer.echo(f"MusicalBILI Web: http://{host}:{port}")
+    typer.echo(f"BiliMuse Web: http://{host}:{port}")
     uvicorn.run(web_app, host=host, port=port)
 
 
@@ -374,7 +374,7 @@ def model_list(config: Path = typer.Option(None, "--config", "-c", help="配置�
             typer.echo(f"  [{m['kind']}] {m['name']} ({m['size_mb']}MB) {m['path']}{mark}")
     else:
         typer.echo("未检测到本地/HF 缓存模型")
-    typer.echo(f"可下载: {', '.join(WHISPER_SIZES)}（musicalbili model download <size>）")
+    typer.echo(f"可下载: {', '.join(WHISPER_SIZES)}（bilimuse model download <size>）")
     typer.echo(
         f"依赖: lyric-align={'已装' if align_available() else '未装'} | "
         f"faster-whisper={'已装' if faster_whisper_installed() else '未装'}"
@@ -423,7 +423,7 @@ def model_set(
 def config(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
     """交互式配置向导（免手编 config.json）。"""
     cfg = Config.load(config)
-    typer.echo("=== MusicalBILI 配置向导（回车使用默认值）===")
+    typer.echo("=== BiliMuse 配置向导（回车使用默认值）===")
     cfg.download_dir = Path(_ask(f"下载目录 [{cfg.download_dir}]", str(cfg.download_dir)))
     cfg.format = _ask(f"格式 (m4a/mp3/flac) [{cfg.format}]", cfg.format)
     cfg.lyric_sources = _ask_list("歌词源顺序", cfg.lyric_sources)
@@ -457,7 +457,7 @@ def config(config: Path = typer.Option(None, "--config", "-c", help="配置文�
         f"| 登录: {'是' if cfg.sessdata else '否'} | 代理: {cfg.proxy or '无'}"
     )
     if not is_portable():
-        typer.echo("提示: 运行 `musicalbili portable on` 可开启便携模式（所有运行时文件放项目 data/）")
+        typer.echo("提示: 运行 `bilimuse portable on` 可开启便携模式（所有运行时文件放项目 data/）")
 
 
 @app.command()
@@ -479,7 +479,7 @@ def doctor(
     typer.echo(f"Python: {sys.version.split()[0]} (>=3.11 可用)")
     typer.echo(f"模式: {'便携' if is_portable() else '标准'}")
     typer.echo(f"配置目录: {default_config_dir()}")
-    typer.echo("B站登录态: " + ("已登录（SESSDATA 已配置）" if cfg.sessdata else "未登录（风控阈值更高，建议 musicalbili login）"))
+    typer.echo("B站登录态: " + ("已登录（SESSDATA 已配置）" if cfg.sessdata else "未登录（风控阈值更高，建议 bilimuse login）"))
 
     if cfg.ffmpeg_path:
         src = f"config.ffmpeg_path={cfg.ffmpeg_path}"
@@ -515,10 +515,10 @@ def doctor(
     if models:
         typer.echo("已检测模型: " + ", ".join(f"{m['name']}({m['size_mb']}MB)" for m in models))
     else:
-        typer.echo("未检测到本地/HF 缓存模型（musicalbili model download 可下载）")
+        typer.echo("未检测到本地/HF 缓存模型（bilimuse model download 可下载）")
     if cfg.hf_mirror:
         typer.echo(f"HF 镜像: {cfg.hf_mirror}")
-    typer.echo(f"日志: {log_dir() / 'musicalbili.log'}（level={cfg.log_level}）")
+    typer.echo(f"日志: {log_dir() / 'bilimuse.log'}（level={cfg.log_level}）")
 
     if network:
         typer.echo("-- 接口连通性探测 --")

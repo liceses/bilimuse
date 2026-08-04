@@ -18,7 +18,7 @@ def register_display(cb: Callable[[dict], None]) -> None:
 
 
 def emit(level: str, text: str, data: dict | None = None) -> None:
-    logger = logging.getLogger("musicalbili.status")
+    logger = logging.getLogger("bilimuse.status")
     lvl = getattr(logging, level.upper(), logging.INFO)
     logger.log(lvl, text)
     if lvl < logging.INFO:

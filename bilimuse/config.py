@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-APP_NAME = "musicalbili"
+APP_NAME = "bilimuse"
 DEFAULT_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -14,7 +14,7 @@ DEFAULT_UA = (
 
 
 def project_root() -> Path:
-    """项目根：含 musicalbili/ 包的上层目录。"""
+    """项目根：含 bilimuse/ 包的上层目录。"""
     return Path(__file__).resolve().parents[1]
 
 

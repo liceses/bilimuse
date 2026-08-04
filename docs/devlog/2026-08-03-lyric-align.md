@@ -25,7 +25,7 @@
 
 ## 技巧
 
-- `whisper_model` 直接给本地目录：faster-whisper 接受路径，`lyric-align --model <dir>` 透传 → `musicalbili/services/aligner.py:107`
+- `whisper_model` 直接给本地目录：faster-whisper 接受路径，`lyric-align --model <dir>` 透传 → `bilimuse/services/aligner.py:107`
 - 子进程设 `PYTHONUTF8=1`：Windows 默认 GBK，lyric-align `read_text()` 无编码参数会读崩 UTF-8 歌词 → `aligner.py:111`
 - `_align_exe()` 从 `sys.executable` 同级找 `lyric-align(.exe)`：`python -c` 时 venv\Scripts 不在 PATH，`shutil.which` 找不到 → `aligner.py:17`
 - 时长探测：mutagen 先试（mp3/flac 准）→ ffmpeg `-i -f null -` 解析 `Duration:` 兜底（fMP4）→ `aligner.py:38`
@@ -140,5 +140,5 @@
 - 搁浅（align 关）：lrclib 46 行 → scale 缩放校准 + 警告"装 [align] 可强制对齐" ✅
 - `doctor`：`歌词校准: lyric-align 可用（whisper=<本地模型路径>）` + HF 镜像 ✅
 - `python -m pytest tests -q`：29 passed ✅（含 LRC 解析/清理/翻译合并/快速缩放）
-- `python -m ruff check musicalbili tests`：All checks passed ✅
+- `python -m ruff check bilimuse tests`：All checks passed ✅
 - 模型获取：ModelScope `Systran/faster-whisper-small`（config/model.bin 472MB/tokenizer.json/vocabulary.txt），`models/` 已 gitignore
