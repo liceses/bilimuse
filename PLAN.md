@@ -40,13 +40,15 @@ MusicalBILI/
 │   │   └── meta.py      # 网易云反查真实 歌名/歌手/专辑/封面/时长
 │   ├── services/
 │   │   ├── auth.py       # B站扫码登录（QR generate/poll → SESSDATA）
-│   │   ├── search.py    # 两跳反查：歌词→歌曲→B站版本
+│   │   ├── search.py    # 两跳反查：歌词→歌名→B站版本（搜索服务）
+│   │   ├── pipeline.py  # 一键闭环编排（事件化，CLI/TUI/Web 复用）
 │   │   ├── download.py  # DASH音频流下载 + 转码
 │   │   ├── tagger.py    # mutagen 写标签 + 内嵌
 │   │   ├── lyric.py     # 歌词获取与匹配（按源降级）
 │   │   └── aligner.py   # 时间轴校准
 │   ├── pipeline.py      # 一键闭环编排
-│   ├── cli.py           # typer 命令 + textual 交互
+│   ├── cli.py           # typer 命令（get/download/search/login/doctor…）
+│   ├── tui.py           # Textual 交互式界面（可选 [tui]）
 │   └── web.py           # FastAPI（二期）
 ├── tests/
 ├── setup.ps1        # Windows 一键部署（venv + 依赖，可选装 ffmpeg）
@@ -61,9 +63,9 @@ MusicalBILI/
    │
    ▼
 [1] search.search()：两跳反查
-    ├─ 若为歌词片段：Musixmatch/LRCLIB → 候选歌曲(title+artist+duration)
-    └─ B站 wbi/search/type (video) 按 <title> <artist> 搜
-        过滤：hit_columns 含 title、音乐分区、时长相近 → 版本列表
+    ├─ 歌词片段：网易云 weapi 按歌词正文反查歌名（实测有效）→ 前 3 歌名
+    └─ B站 search/type 直接搜 query + 按反查歌名各搜一次，合并去重按播放量排序
+        命中结果标注来源（direct/lyric）→ 版本列表
    │
    ▼
 [2] 用户选版本 → bvid + cid
@@ -124,7 +126,7 @@ MusicalBILI/
 - **M2** 下载 + 转码 + 命名 + 去重入库
 - **M3** 网易云元数据反查 + mutagen 打标签
 - **M4** 歌词获取（多源降级）+ 校准（偏移/缩放 + lyric-align）
-- **M5** pipeline 一键闭环 + textual 交互式界面
+- **M5** pipeline 一键闭环（`get` 命令：歌词/歌名搜索→选版本→下载→标签→歌词校准）+ Textual TUI
 - **M6** FastAPI Web 界面
 
 每阶段验证：M1 能搜出并列出 B 站版本；M2 生成带正确命名和时长的音频文件；M3 文件 ID3 完整；M4 歌词时间与音频吻合（抽查）；M5/M6 端到端一条命令/一次点击完成。

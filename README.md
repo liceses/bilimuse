@@ -40,6 +40,10 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 ## 使用
 
 ```bash
+musicalbili get "窗外的麻雀 在电线杆上多嘴"   # 一键闭环：歌词/歌名搜索→选版本→下载→打标签→配歌词校准
+musicalbili get "周杰伦 晴天" --auto          # 自动选第一条（脚本化）
+musicalbili get "晴天" --index 2              # 直接选第 2 条
+musicalbili tui                               # Textual 交互式界面（需 pip install -e ".[tui]"）
 musicalbili search "周杰伦 晴天"     # 搜索 B 站版本
 musicalbili info BV1d4411N7zD        # 查看视频详情/分 P
 musicalbili download BV1d4411N7zD --format mp3   # 下载（自动打标签 + 配歌词校准，写 .lrc）
@@ -50,6 +54,8 @@ musicalbili login                    # 手机扫码登录 B 站（降低风控/�
 musicalbili logout                   # 退出登录
 musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
 ```
+
+> `get` 支持**歌词片段搜索**：输入一句歌词（如"窗外的麻雀 在电线杆上多嘴"），自动经网易云反查真实歌名 → 再去 B 站选版本。
 
 ## 配置
 
@@ -63,6 +69,7 @@ musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
   "proxy": "",
   "ffmpeg_path": "",
   "lyric_sources": ["lrclib", "netease", "bilibili"],
+  "search_lyric_lookup": true,
   "translation_enabled": true,
   "align_enabled": true,
   "whisper_model": "small",
@@ -76,6 +83,7 @@ musicalbili doctor --network         # 环境诊断 + 数据源连通性探测
 - `proxy`：需要代理访问 B 站时填写。
 - `ffmpeg_path`：显式指定系统 ffmpeg，优先于内嵌版本。
 - `lyric_sources`：歌词源降级顺序。
+- `search_lyric_lookup`：搜索时是否经网易云按歌词正文反查歌名（默认开，歌词片段搜索的关键）。
 - `translation_enabled`：外文歌自动配中文译文（网易云 tlyric 双语合并，默认开）。
 - `whisper_model`：whisper 模型名（`tiny/base/small/medium/large-v3-turbo`）或本地目录路径（推荐 ModelScope 下载后填路径）。
 - `whisper_language`：ASR 语言兜底（自动检测失败时用，默认 `zh`）。

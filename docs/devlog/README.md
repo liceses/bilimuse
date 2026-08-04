@@ -12,6 +12,7 @@
 | 2026-08-03 | [元数据反查与打标签](2026-08-03-metadata-tagger.md) | M3 | 咪咕/网易云多源反查、mutagen 打标签、webp封面转换 |
 | 2026-08-03 | [扫码登录与 API 加固](2026-08-03-login-hardening.md) | M3补 | B站扫码登录降风控、搜索双端点、网易云 weapi 兜底 |
 | 2026-08-03 | [歌词获取与校准](2026-08-03-lyric-align.md) | M4 | LRCLIB/网易云/B站字幕多源降级、快速校准、lyric-align 强制对齐 |
+| 2026-08-04 | [pipeline 闭环 + 搜索 + TUI](2026-08-04-pipeline-tui.md) | M5 | get 一键闭环、网易云歌词正文反查、Textual TUI |
 
 ## 技术沉淀速查表
 
@@ -45,4 +46,7 @@
 | 稳健拟合 | 锚点偏移 MAD≤3s 判纯平移（中位数），否则 LSQ；防离群点带偏 | `aligner.py:_robust_fit` |
 | 外文歌译文 | 主源非netease，detect非zh → 网易云双语对替换（`_from_netease_bilingual`） | `lyric.py` |
 | 译文配对 | 校准前按时间戳 pair_translation（英文/拟声行→None），校准后 reattach 按行序贴回；勿行序1:1 | `lyric.py:pair_translation`/`reattach_translation` |
+| 歌词正文搜索 | 网易云 weapi `s` 参数即按歌词搜（返回歌名对、歌手是翻唱者）；LRCLIB 不搜歌词正文 | `services/search.py` |
+| pipeline 事件化 | 编排抽 `services/pipeline.py`，on_event 推 info/progress/meta/lyric，CLI/TUI/Web 复用 | `pipeline.py` |
+| Textual 8 | `Input.action_submit()` 是协程需 await；headless 用 `run_test`+`pilot.pause()` | `tui.py` |
 | `「」`/`《》`歌名提取 | `split_query` 优先括号内歌名（日式引号），再 ` - ` 分隔 | `musicalbili/services/tagger.py` |

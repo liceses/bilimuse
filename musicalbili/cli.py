@@ -1,4 +1,4 @@
-"""CLI 入口：搜索、查看、下载、历史、环境诊断。"""
+"""CLI 入口：搜索、一键下载(get)、查看、历史、登录、环境诊断、TUI。"""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from .config import Config, default_config_dir
 from .db import DownloadDB
 from .providers.bilibili import BilibiliClient, BilibiliError
 from .providers.meta import MiguMeta, NeteaseMeta
-from .services.aligner import align_available, calibrate
+from .services.aligner import align_available
 from .services.auth import LoginError, bili_login
-from .services.download import download_song
-from .services.lyric import fetch_lyrics, pair_translation, placeholder_lyric, reattach_translation
-from .services.tagger import auto_tag, tag_file
+from .services.pipeline import download_song_pipeline
+from .services.search import search_versions
+from .services.tagger import auto_tag
 
 app = typer.Typer(add_completion=False)
 
@@ -79,104 +79,124 @@ def download(
         cfg.download_dir = dir
     if out_format:
         cfg.format = out_format
-    db = DownloadDB()
     try:
-        path, meta, lyric = asyncio.run(_download(cfg, db, bvid, page, no_tag, no_lyric, force_align))
+        result = asyncio.run(
+            download_song_pipeline(
+                cfg, bvid, page,
+                on_event=_echo_events,
+                no_tag=no_tag, no_lyric=no_lyric, force_align=force_align,
+            )
+        )
     except (BilibiliError, RuntimeError) as e:
         typer.echo(f"下载失败: {e}", err=True)
         raise typer.Exit(code=1) from e
-    typer.echo(f"\n已保存: {path}")
-    if meta:
-        typer.echo(f"标签: {meta.artist_str} - {meta.name}")
-    if lyric:
-        typer.echo(f"歌词: {lyric.source}（{lyric.calib_method}）")
-    db.close()
+    typer.echo(f"\n已保存: {result['path']}")
+    if result["meta"]:
+        typer.echo(f"标签: {result['meta'].artist_str} - {result['meta'].name}")
+    if result["lyric"]:
+        typer.echo(f"歌词: {result['lyric'].source}（{result['lyric'].calib_method}）")
 
 
-async def _download(
-    cfg: Config, db: DownloadDB, bvid: str, page: int, no_tag: bool, no_lyric: bool, force_align: bool
-) -> tuple:
-    async with BilibiliClient(cfg) as client:
-        detail = await client.get_detail(bvid)
-        pages = detail.pages or await client.get_pagelist(bvid)
-        if pages:
-            selected = pages[page - 1]
-            cid = selected.cid
-            title = selected.part if len(pages) > 1 else detail.title
-        else:
-            cid = detail.cid
-            title = detail.title
+@app.command()
+def get(
+    query: str = typer.Argument(..., help="歌名/歌手/歌词片段"),
+    index: int = typer.Option(0, "--index", "-i", min=0, help="直接选第 N 条（1 起）；默认交互选择"),
+    auto: bool = typer.Option(False, "--auto", help="自动选第一条"),
+    page: int = typer.Option(1, "--page", "-p", min=1, help="分 P 序号"),
+    out_format: str = typer.Option("", "--format", "-f", help="m4a/mp3/flac（默认用配置）"),
+    no_tag: bool = typer.Option(False, "--no-tag", help="下载后不自动打标签"),
+    no_lyric: bool = typer.Option(False, "--no-lyric", help="下载后不自动配歌词"),
+    force_align: bool = typer.Option(False, "--align", help="歌词强制 lyric-align 校准"),
+    dir: Path = typer.Option(None, "--dir", "-d", help="下载目录（覆盖配置）"),
+    config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
+) -> None:
+    """一键闭环：搜索（含歌词反查）→ 选版本 → 下载 → 打标签 → 配歌词校准。"""
+    cfg = Config.load(config)
+    if dir is not None:
+        cfg.download_dir = dir
+    if out_format:
+        cfg.format = out_format
+    try:
+        result = asyncio.run(_get(cfg, query, index, auto, page, no_tag, no_lyric, force_align))
+    except (BilibiliError, RuntimeError) as e:
+        typer.echo(f"失败: {e}", err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(f"\n已保存: {result['path']}")
+    if result["meta"]:
+        typer.echo(f"标签: {result['meta'].artist_str} - {result['meta'].name}")
+    if result["lyric"]:
+        typer.echo(f"歌词: {result['lyric'].source}（{result['lyric'].calib_method}）")
 
-    if db.already_downloaded(bvid, cid):
-        raise RuntimeError(f"{bvid} 的 P{page}(cid={cid}) 已下载过，跳过（去重）")
 
-    typer.echo(f"标题: {title}\nUP主: {detail.author}")
-    state = {"last": -1}
-
-    async def progress(done: int, total: int) -> None:
-        if total <= 0:
-            return
-        pct = done * 100 // total
-        if pct != state["last"]:
-            state["last"] = pct
-            typer.echo(f"\r下载 {pct:3d}%", nl=False)
-        if done >= total:
+async def _echo_events(ev: dict) -> None:
+    t = ev["type"]
+    if t == "info":
+        typer.echo(f"标题: {ev['title']}\nUP主: {ev['author']}")
+    elif t == "progress":
+        typer.echo(f"\r下载 {ev['pct']:3d}%", nl=False)
+        if ev["pct"] >= 100:
             typer.echo()
+    elif t == "message":
+        typer.echo(ev["text"])
+    elif t == "meta":
+        typer.echo(f"匹配来源: {ev['meta'].source}")
+    elif t == "lyric":
+        typer.echo(f"歌词: {ev['lyric'].source} → .lrc 已写入")
+    elif t == "warning":
+        typer.echo(ev["text"], err=True)
 
-    path = await download_song(
-        bvid, cid, cfg=cfg, title=title, artist=detail.author, fmt=cfg.format, progress=progress
+
+def _ask_index(count: int) -> int:
+    while True:
+        s = input(f"选择序号 (1-{count}，回车默认 1): ").strip()
+        if not s:
+            return 0
+        try:
+            n = int(s)
+            if 1 <= n <= count:
+                return n - 1
+        except ValueError:
+            pass
+        typer.echo(f"请输入 1-{count}")
+
+
+async def _get(
+    cfg: Config, query: str, index: int, auto: bool, page: int, no_tag: bool, no_lyric: bool, force_align: bool
+) -> dict:
+    hits = await search_versions(cfg, query)
+    if not hits:
+        raise RuntimeError("未搜索到结果")
+    for i, h in enumerate(hits, 1):
+        v = h.version
+        src = "歌词反查" if h.source == "lyric" else "直接搜索"
+        typer.echo(f"[{i}] [{src}] {v.bvid} | {v.duration}s | 播放{v.play} | {v.author}")
+        typer.echo(f"    {v.title}")
+    if auto:
+        sel = 0
+    elif index >= 1:
+        sel = index - 1
+    else:
+        sel = await asyncio.to_thread(_ask_index, len(hits))
+    if not (0 <= sel < len(hits)):
+        raise RuntimeError("无效选择")
+    hit = hits[sel]
+    typer.echo(f"选择: [{hit.source}] {hit.version.title}")
+    return await download_song_pipeline(
+        cfg, hit.version.bvid, page,
+        on_event=_echo_events,
+        no_tag=no_tag, no_lyric=no_lyric, force_align=force_align,
     )
-    meta = None
-    if not no_tag:
-        typer.echo("反查元数据并打标签...")
-        async with MiguMeta(cfg) as migu, NeteaseMeta(cfg) as netease:
-            new_path, meta = await auto_tag(path, title, [migu, netease], cfg, fallback_artist=detail.author)
-        if meta:
-            path = new_path
-            typer.echo(f"匹配来源: {meta.source}")
-        else:
-            typer.echo("未匹配到曲目，保留原始命名", err=True)
-
-    lyric = None
-    if not no_lyric:
-        lyric = await _lyric_and_embed(cfg, path, meta, title, bvid, cid, force_align)
-
-    db.add(
-        bvid=bvid,
-        cid=cid,
-        title=meta.name if meta else title,
-        artist=meta.artist_str if meta else detail.author,
-        format=path.suffix.lstrip("."),
-        file_path=str(path),
-    )
-    return path, meta, lyric
 
 
-async def _lyric_and_embed(
-    cfg: Config, path: Path, meta, title: str, bvid: str, cid: int, force_align: bool
-):
-    """拿歌词 → 校准 → 写 .lrc 侧车 + 内嵌标签。"""
-    if force_align and not align_available():
-        typer.echo("--align 需要 lyric-align，请装 `pip install -e '.[align]'`", err=True)
-    typer.echo("获取歌词...")
-    lyric = await fetch_lyrics(cfg, meta, title, bvid, cid)
-    sidecar = path.with_suffix(".lrc")
-    if lyric is None:
-        lyric = placeholder_lyric()
-        sidecar.write_text(lyric.text, encoding="utf-8")
-        typer.echo("未找到歌词，已生成纯音乐占位 .lrc", err=True)
-        return lyric
-    pairs = pair_translation(lyric.text, lyric.tlyric)
-    lyric = await calibrate(path, lyric, cfg, force_align, meta_language=meta.language if meta else "")
-    final_text = reattach_translation(lyric.text, pairs) if lyric.source != "placeholder" else lyric.text
-    sidecar.write_text(final_text, encoding="utf-8")
-    typer.echo(f"歌词: {lyric.source} → .lrc 已写入")
-    if meta:
-        tag_file(path, meta, lyrics=final_text)
-        typer.echo("歌词已内嵌标签")
-    if lyric.warning:
-        typer.echo(f"校准提示: {lyric.warning}", err=True)
-    return lyric
+@app.command()
+def tui(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
+    """Textual 交互式界面（需 pip install -e '.[tui]'）。"""
+    try:
+        from .tui import MusicalbiliApp
+    except ImportError as e:
+        typer.echo(f"需要安装 TUI 依赖: pip install -e '.[tui]'（{e}）", err=True)
+        raise typer.Exit(code=1) from e
+    MusicalbiliApp(config=config).run()
 
 
 @app.command()

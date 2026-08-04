@@ -22,6 +22,9 @@ separate = [
 ffmpeg = [
     "imageio-ffmpeg>=0.5",
 ]
+tui = [
+    "textual>=0.8",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
