@@ -1,10 +1,12 @@
 # MusicalBILI 一键部署（Windows）
 # 用法:  .\setup.ps1                # 轻量模式（仅 m4a，无 ffmpeg）
 #        .\setup.ps1 -WithFfmpeg    # 完整模式（含 imageio-ffmpeg，支持 mp3/flac）
+#        .\setup.ps1 -Portable      # 便携模式（运行时文件放项目 data/）
 #        .\setup.ps1 -Mirror ""     # 使用官方 PyPI（默认清华镜像）
 
 param(
     [switch]$WithFfmpeg,
+    [switch]$Portable,
     [string]$Mirror = "https://pypi.tuna.tsinghua.edu.cn/simple"
 )
 $ErrorActionPreference = "Stop"
@@ -33,6 +35,13 @@ try {
 }
 
 Write-Host ""
+if ($Portable) {
+    $marker = Join-Path $root ".portable"
+    if (-not (Test-Path $marker)) {
+        New-Item -ItemType File -Path $marker | Out-Null
+        Write-Host "已创建 .portable，开启便携模式（config/logs/db 将放 data/）"
+    }
+}
 Write-Host "完成。使用方式:"
 Write-Host "  cmd 项目目录直接:  musicalbili tui / musicalbili get 歌名"
 Write-Host "  PowerShell 项目目录:  .\musicalbili tui"

@@ -26,6 +26,10 @@ cookies.json
 # 本地 whisper 模型
 models/
 
+# 便携模式数据目录
+data/
+.portable
+
 # 编辑器/系统
 .idea/
 .vscode/

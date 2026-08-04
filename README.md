@@ -149,6 +149,20 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
 - **统一状态通道**：CLI/TUI/Web 三端动态显示"系统在做什么"——搜索（含歌词反查）、解析元数据（按源：咪咕/网易云）、获取歌词（按源：LRCLIB/网易云/B站字幕）、下载进度、whisper 校准（步骤级）、配置向导（等待输入/已设置）。同一条状态同时写入日志，方便排查。
 - 排查：`musicalbili doctor` 显示日志路径；部署问题看 `setup.log`。
 
+## 便携模式
+
+默认配置文件在系统目录（`%APPDATA%\musicalbili`）。开启**便携模式**后，`config.json`/`downloads.db`/`logs/` 全部移到项目内 `data/`，连同 `downloads/`、`models/`、`.venv/` 都在项目目录里——**整个文件夹拷走即用、即用即下即删即走**，不污染系统环境。
+
+```bash
+musicalbili portable on     # 开启：创建 .portable，并把现有配置(含登录态)复制到 data/
+musicalbili portable off    # 关闭：删除 .portable（数据保留在 data/）
+musicalbili doctor          # 查看当前 模式(便携/标准) + 配置目录
+```
+
+- 也可用环境变量 `MUSICALBILI_PORTABLE=1`（一次会话）或安装时 `setup.ps1 -Portable` / `setup.sh --portable`。
+- `.portable` 标记文件随目录走：拷到别处仍保持便携；克隆仓库默认标准模式。
+- 下载与模型目录 `downloads/`、`models/` 始终在项目内，不随模式变化。
+
 ## 项目文档
 
 - 需求与调研：[idea.md](idea.md) ｜ 技术方案：[PLAN.md](PLAN.md) ｜ 开发日志：[docs/devlog](docs/devlog/)

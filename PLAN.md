@@ -132,5 +132,6 @@ MusicalBILI/
 - **M5** pipeline 一键闭环（`get` 命令：歌词/歌名搜索→选版本→下载→标签→歌词校准）+ Textual TUI
 - **M6** FastAPI Web 界面（WebSocket 进度、原生单页、[web] extra）
 - **M7** 日志系统（文件滚动 + console WARNING）+ 统一状态通道（`status.py` emit 双写，provider 级解析状态，config/等待输入/解析/下载三端动态显示）
+- **M8** 便携模式（`.portable` 标记/env 触发，config/logs/db 移到项目 `data/`，`portable on/off` 命令 + 配置迁移）
 
 每阶段验证：M1 能搜出并列出 B 站版本；M2 生成带正确命名和时长的音频文件；M3 文件 ID3 完整；M4 歌词时间与音频吻合（抽查）；M5/M6 端到端一条命令/一次点击完成。

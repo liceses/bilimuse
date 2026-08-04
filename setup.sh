@@ -2,10 +2,12 @@
 # MusicalBILI 一键部署（Linux/macOS）
 # 用法:  ./setup.sh                   # 轻量模式（仅 m4a，无 ffmpeg）
 #        ./setup.sh --with-ffmpeg     # 完整模式（含 imageio-ffmpeg，支持 mp3/flac）
+#        ./setup.sh --portable        # 便携模式（运行时文件放项目 data/）
 #        MIRROR= ./setup.sh           # 使用官方 PyPI（默认清华镜像）
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WITH_FFMPEG="${1:-}"
+WITH_PORTABLE="${2:-}"
 VENV="$ROOT/.venv"
 PY="$VENV/bin/python"
 
@@ -28,6 +30,12 @@ cd "$ROOT"
 "$PY" -m pip install -e "$PKG" "${PIP_ARGS[@]}"
 
 echo ""
+if [ "$WITH_PORTABLE" = "--portable" ]; then
+  if [ ! -f "$ROOT/.portable" ]; then
+    touch "$ROOT/.portable"
+    echo "已创建 .portable，开启便携模式（config/logs/db 将放 data/）"
+  fi
+fi
 echo "完成。使用方式:"
 echo "  项目目录: ./musicalbili.sh tui / ./musicalbili.sh get 歌名"
 echo "  激活后任意目录: source .venv/bin/activate 然后 musicalbili"

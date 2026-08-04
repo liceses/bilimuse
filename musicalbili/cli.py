@@ -9,7 +9,7 @@ from pathlib import Path
 
 import typer
 
-from .config import Config, default_config_dir
+from .config import Config, default_config_dir, is_portable, project_root
 from .db import DownloadDB
 from .logging_setup import get_logger, log_dir, setup_logging
 from .providers.bilibili import BilibiliClient, BilibiliError
@@ -323,6 +323,42 @@ def _ask_list(prompt: str, default: list[str]) -> list[str]:
 model_app = typer.Typer(help="whisper 模型管理（检测/下载/设置）")
 app.add_typer(model_app, name="model")
 
+portable_app = typer.Typer(help="便携模式管理（所有运行时文件放项目 data/）")
+app.add_typer(portable_app, name="portable")
+
+
+@portable_app.command("on")
+def portable_on(
+    no_migrate: bool = typer.Option(False, "--no-migrate", help="不复制现有配置"),
+) -> None:
+    """开启便携模式：创建 .portable，config/logs/db 移到项目 data/。"""
+    root = project_root()
+    marker = root / ".portable"
+    if marker.is_file():
+        typer.echo("已处于便携模式")
+        return
+    old = default_config_dir()  # 标记不存在 → 当前为标准/环境目录
+    marker.touch()
+    new = root / "data"
+    if not no_migrate and not (new / "config.json").is_file():
+        old_cfg = old / "config.json"
+        if old_cfg.is_file() and _ask_bool(f"复制现有配置(含登录态)到 {new / 'config.json'}？[Y]", True):
+            new.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(old_cfg, new / "config.json")
+            typer.echo(f"已复制配置: {new / 'config.json'}")
+    typer.echo(f"便携模式开启。运行时文件将位于: {new}（config/logs/downloads.db）")
+
+
+@portable_app.command("off")
+def portable_off() -> None:
+    """关闭便携模式：删除 .portable（数据保留在 data/）。"""
+    marker = project_root() / ".portable"
+    if marker.is_file():
+        marker.unlink()
+        typer.echo("已关闭便携模式（数据保留在 data/，如需回标准模式请自行迁移）")
+    else:
+        typer.echo("未开启便携模式")
+
 
 @model_app.command("list")
 def model_list(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
@@ -420,6 +456,8 @@ def config(config: Path = typer.Option(None, "--config", "-c", help="配置文�
         f"校准: {'开' if cfg.align_enabled else '关'}({cfg.whisper_model}) "
         f"| 登录: {'是' if cfg.sessdata else '否'} | 代理: {cfg.proxy or '无'}"
     )
+    if not is_portable():
+        typer.echo("提示: 运行 `musicalbili portable on` 可开启便携模式（所有运行时文件放项目 data/）")
 
 
 @app.command()
@@ -439,6 +477,7 @@ def doctor(
     """检测运行环境：Python / ffmpeg / 登录态 / 接口连通性。"""
     cfg = Config.load(config)
     typer.echo(f"Python: {sys.version.split()[0]} (>=3.11 可用)")
+    typer.echo(f"模式: {'便携' if is_portable() else '标准'}")
     typer.echo(f"配置目录: {default_config_dir()}")
     typer.echo("B站登录态: " + ("已登录（SESSDATA 已配置）" if cfg.sessdata else "未登录（风控阈值更高，建议 musicalbili login）"))
 

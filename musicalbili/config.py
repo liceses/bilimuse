@@ -13,10 +13,22 @@ DEFAULT_UA = (
 )
 
 
+def project_root() -> Path:
+    """项目根：含 musicalbili/ 包的上层目录。"""
+    return Path(__file__).resolve().parents[1]
+
+
+def is_portable() -> bool:
+    """便携模式：项目根 .portable 标记文件 或环境变量 MUSICALBILI_PORTABLE=1。"""
+    return os.environ.get("MUSICALBILI_PORTABLE") == "1" or (project_root() / ".portable").is_file()
+
+
 def default_config_dir() -> Path:
-    """平台相关的配置目录。"""
+    """配置目录（config/db/logs 的派生源头）。便携 → 项目 data/，否则平台目录。"""
     if base := os.environ.get("MUSICALBILI_CONFIG_DIR"):
         return Path(base)
+    if is_portable():
+        return project_root() / "data"
     if os.name == "nt":
         return Path(os.environ.get("APPDATA", str(Path.home()))) / APP_NAME
     return Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / APP_NAME

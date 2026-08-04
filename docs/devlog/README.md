@@ -15,6 +15,7 @@
 | 2026-08-04 | [pipeline 闭环 + 搜索 + TUI](2026-08-04-pipeline-tui.md) | M5 | get 一键闭环、网易云歌词正文反查、Textual TUI |
 | 2026-08-04 | [Web 界面](2026-08-04-web.md) | M6 | FastAPI + WebSocket 进度、原生单页、[web] extra |
 | 2026-08-04 | [日志 + 统一状态通道](2026-08-04-logging-status.md) | M7 | 日志文件滚动、status.emit 双写、provider 级解析状态、config/等待输入三端显示 |
+| 2026-08-04 | [便携模式](2026-08-04-portable.md) | M8 | .portable 标记/env 触发、data/ 目录、portable on/off 命令、配置迁移 |
 
 ## 技术沉淀速查表
 
