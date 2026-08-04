@@ -253,6 +253,55 @@ def login(config: Path = typer.Option(None, "--config", "-c", help="配置文件
     typer.echo("登录成功，SESSDATA 已保存")
 
 
+def _ask(prompt: str, default: str) -> str:
+    s = input(f"{prompt}: ").strip()
+    return s if s else default
+
+
+def _ask_bool(prompt: str, default: bool) -> bool:
+    s = input(f"{prompt} (y/n): ").strip().lower()
+    if not s:
+        return default
+    return s in ("y", "yes", "是", "1", "true")
+
+
+def _ask_list(prompt: str, default: list[str]) -> list[str]:
+    s = input(f"{prompt} [{','.join(default)}]: ").strip()
+    return [x.strip() for x in (s if s else ",".join(default)).split(",") if x.strip()]
+
+
+@app.command()
+def config(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
+    """交互式配置向导（免手编 config.json）。"""
+    cfg = Config.load(config)
+    typer.echo("=== MusicalBILI 配置向导（回车使用默认值）===")
+    cfg.download_dir = Path(_ask(f"下载目录 [{cfg.download_dir}]", str(cfg.download_dir)))
+    cfg.format = _ask(f"格式 (m4a/mp3/flac) [{cfg.format}]", cfg.format)
+    cfg.lyric_sources = _ask_list("歌词源顺序", cfg.lyric_sources)
+    cfg.align_enabled = _ask_bool(f"歌词精确校准(whisper) [{'开' if cfg.align_enabled else '关'}]", cfg.align_enabled)
+    cfg.whisper_model = _ask(
+        f"whisper 模型(名称或本地路径，国内可 ModelScope 下载) [{cfg.whisper_model}]",
+        cfg.whisper_model,
+    )
+    if not cfg.sessdata and _ask_bool("扫码登录 B 站(降风控/高音质)? [n]", False):
+        try:
+            cfg.sessdata = asyncio.run(bili_login(cfg))
+        except LoginError as e:
+            typer.echo(f"登录失败，跳过: {e}", err=True)
+    cfg.proxy = _ask(f"代理(留空跳过) [{cfg.proxy}]", cfg.proxy)
+
+    cfg.save(config)
+    saved = config or default_config_dir() / "config.json"
+    typer.echo(f"\n已保存: {saved}")
+    typer.echo(
+        f"下载目录: {cfg.download_dir} | 格式: {cfg.format} | 歌词源: {','.join(cfg.lyric_sources)}"
+    )
+    typer.echo(
+        f"校准: {'开' if cfg.align_enabled else '关'}({cfg.whisper_model}) "
+        f"| 登录: {'是' if cfg.sessdata else '否'} | 代理: {cfg.proxy or '无'}"
+    )
+
+
 @app.command()
 def logout(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
     """清除 B 站登录态。"""

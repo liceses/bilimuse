@@ -58,4 +58,6 @@ class Config:
     def save(self, path: Path | None = None) -> None:
         path = path or default_config_dir() / "config.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(vars(self), ensure_ascii=False, indent=2), encoding="utf-8")
+        data = dict(vars(self))
+        data["download_dir"] = str(data["download_dir"])
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")

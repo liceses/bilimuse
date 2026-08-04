@@ -32,7 +32,13 @@ try {
     Pop-Location
 }
 
-Write-Host "完成。运行: .\.venv\Scripts\python.exe -m musicalbili --help"
+Write-Host ""
+Write-Host "完成。使用方式:"
+Write-Host "  cmd 项目目录直接:  musicalbili tui / musicalbili get 歌名"
+Write-Host "  PowerShell 项目目录:  .\musicalbili tui"
+Write-Host "  激活后任意目录:      .\.venv\Scripts\Activate.ps1 然后 musicalbili"
+Write-Host "  一键启动 TUI:        双击 musicalbili-tui.cmd"
+Write-Host "  一键配置向导:        双击 musicalbili-config.cmd"
 if (-not $WithFfmpeg) {
     Write-Host "提示: 需要 mp3/flac 时用 .\setup.ps1 -WithFfmpeg 重装"
 }

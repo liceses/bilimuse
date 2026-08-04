@@ -29,6 +29,16 @@ pip install -e ".[ffmpeg]"    # 完整（mp3/flac，内嵌 imageio-ffmpeg）
 
 > ffmpeg 说明：`.[ffmpeg]` 通过 PyPI 拉取 `imageio-ffmpeg`（~60MB 静态 ffmpeg，内含 libmp3lame），装完即用、不依赖系统环境、不经 GitHub。仅下载 m4a 可不装。
 
+### 运行方式（三种任选）
+
+| 方式 | 命令 |
+|---|---|
+| **一键 TUI** | 双击 `musicalbili-tui.cmd`（Win）/ `./musicalbili-tui`（Unix） |
+| **项目目录命令** | cmd: `musicalbili tui`；PowerShell: `.\musicalbili tui`；Unix: `./musicalbili.sh tui` |
+| **激活 venv** | `.\.venv\Scripts\Activate.ps1` 后任意目录 `musicalbili` |
+
+首次使用先跑配置向导：双击 `musicalbili-config.cmd` 或 `musicalbili config`（设置下载目录/格式/登录等，免手编 json）。
+
 > 歌词精确校准（可选）：`pip install -e ".[align]"` 装 lyric-align（faster-whisper），歌词时间轴失配时自动强制对齐。语言自动检测（日语歌自动用日语识别），模型默认 `small`（约 460MB），国内推荐从 ModelScope 下载后把 `whisper_model` 配成本地路径：
 > ```
 > pip install modelscope

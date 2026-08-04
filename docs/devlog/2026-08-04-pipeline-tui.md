@@ -51,3 +51,31 @@
 - TUI headless：挂载 8 控件；输入"晴天 周杰伦"→ DataTable 20 行（首行晴天MV）✅
 - 单测：`search_versions` 两路合并/去重/关闭开关；`download_song_pipeline` 事件流/`--no-tag --no-lyric` ✅（49 passed）
 - `python -m ruff check musicalbili tests`：All checks passed ✅
+
+## 运行便利化：命令 shim + 一键脚本 + 配置向导（同日补充）
+
+### 问题
+
+- `musicalbili.exe` 已生成，但 venv 未激活时 `.venv\Scripts` 不在 PATH → 终端输入 `musicalbili` 找不到命令。
+- 决策：**不改用户 PATH**，用项目目录 shim + 一键脚本解决。
+
+### 实现
+
+1. **shim**：`musicalbili.cmd`（Win）/ `musicalbili.sh`（Unix）→ 调 `.venv` 内 python `-m musicalbili`。
+   - cmd 项目目录直接 `musicalbili tui`；PS 用 `.\musicalbili`；激活 venv 后任意目录 `musicalbili`。
+   - **踩坑**：Unix 下 `musicalbili` 与包目录 `musicalbili/` 同名冲突 → Unix 通用 shim 改名 `musicalbili.sh`。
+   - **踩坑**：`.cmd` 文件含中文注释在 cmd.exe(GBK) 下解析崩（`rem` 被破坏）→ `.cmd` 只写 ASCII。
+2. **一键脚本**：`musicalbili-tui.cmd`/`musicalbili-tui`（双击进 TUI）、`musicalbili-config.cmd`/`musicalbili-config`（双击配置向导）。
+3. **`musicalbili config` 交互向导**：下载目录/格式/歌词源/校准开关/whisper模型/扫码登录/代理 七项，免手编 json，保存+摘要。
+4. **setup.ps1/sh**：安装后打印运行方式；README 部署节三表。
+
+### 踩坑
+
+- **`Config.save` 不能序列化 Path**：`json.dumps(vars(cfg))` 遇 `download_dir`(WindowsPath) 抛 `TypeError: Object of type WindowsPath is not JSON serializable`——`login`/`logout` 一直有这隐患（未走全）。修复：save 时 `str(download_dir)` → `config.py:save`。
+- **Windows Path 规范化**：`Path("D:/Music")` → `str()` 为 `D:\Music`，断言用 Path 比较。
+
+### 验证
+
+- `.\musicalbili.cmd --help` / `.\musicalbili.cmd tui --help`：shim 生效 ✅
+- `musicalbili config` 管道输入 7 项 → 保存正确（download_dir 字符串化）✅
+- 单测：config 保存/加载往返、向导（mock input）✅（51 passed）
