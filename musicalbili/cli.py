@@ -197,6 +197,23 @@ async def _get(
 
 
 @app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", help="监听地址"),
+    port: int = typer.Option(8000, "--port", "-p", min=1, max=65535, help="端口"),
+) -> None:
+    """启动 Web 界面（需 pip install -e '.[web]'）。"""
+    try:
+        import uvicorn
+
+        from .web import app as web_app
+    except ImportError as e:
+        typer.echo(f"需要安装 Web 依赖: pip install -e '.[web]'（{e}）", err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(f"MusicalBILI Web: http://{host}:{port}")
+    uvicorn.run(web_app, host=host, port=port)
+
+
+@app.command()
 def tui(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
     """Textual 交互式界面（需 pip install -e '.[tui]'）。"""
     try:

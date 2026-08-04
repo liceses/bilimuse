@@ -25,6 +25,11 @@ ffmpeg = [
 tui = [
     "textual>=0.8",
 ]
+web = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "websockets>=12",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",

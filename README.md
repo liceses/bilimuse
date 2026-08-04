@@ -54,6 +54,9 @@ musicalbili get "窗外的麻雀 在电线杆上多嘴"   # 一键闭环：歌�
 musicalbili get "周杰伦 晴天" --auto          # 自动选第一条（脚本化）
 musicalbili get "晴天" --index 2              # 直接选第 2 条
 musicalbili tui                               # Textual 交互式界面（需 pip install -e ".[tui]"）
+musicalbili web                               # Web 界面（需 pip install -e ".[web]"），默认 http://127.0.0.1:8000
+musicalbili model list                        # 模型检测
+musicalbili model download small              # 下载模型（ModelScope/HF）
 musicalbili search "周杰伦 晴天"     # 搜索 B 站版本
 musicalbili info BV1d4411N7zD        # 查看视频详情/分 P
 musicalbili download BV1d4411N7zD --format mp3   # 下载（自动打标签 + 配歌词校准，写 .lrc）

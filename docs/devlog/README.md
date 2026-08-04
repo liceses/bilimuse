@@ -13,6 +13,7 @@
 | 2026-08-03 | [扫码登录与 API 加固](2026-08-03-login-hardening.md) | M3补 | B站扫码登录降风控、搜索双端点、网易云 weapi 兜底 |
 | 2026-08-03 | [歌词获取与校准](2026-08-03-lyric-align.md) | M4 | LRCLIB/网易云/B站字幕多源降级、快速校准、lyric-align 强制对齐 |
 | 2026-08-04 | [pipeline 闭环 + 搜索 + TUI](2026-08-04-pipeline-tui.md) | M5 | get 一键闭环、网易云歌词正文反查、Textual TUI |
+| 2026-08-04 | [Web 界面](2026-08-04-web.md) | M6 | FastAPI + WebSocket 进度、原生单页、[web] extra |
 
 ## 技术沉淀速查表
 

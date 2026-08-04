@@ -1,0 +1,18 @@
+body { font-family: system-ui, "Microsoft YaHei", sans-serif; margin: 0; background: #f7f7f8; color: #222; }
+header { background: #0d3b66; color: #fff; padding: 12px 20px; }
+header h1 { margin: 0; font-size: 20px; }
+.meta { font-size: 12px; opacity: .85; margin-top: 4px; }
+main { max-width: 960px; margin: 16px auto; padding: 0 12px; }
+form { display: flex; gap: 8px; margin-bottom: 12px; }
+#q { flex: 1; padding: 8px; font-size: 15px; }
+button { padding: 8px 18px; font-size: 15px; cursor: pointer; }
+.status { min-height: 20px; font-size: 13px; color: #0d3b66; margin-bottom: 4px; white-space: pre-wrap; }
+.progress-wrap { height: 8px; background: #e3e3e6; border-radius: 4px; overflow: hidden; margin-bottom: 12px; display: none; }
+#progress { height: 100%; width: 0; background: #2e7d32; transition: width .15s; }
+table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+th, td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
+th { background: #eceff1; }
+tr[data-bvid] { cursor: pointer; }
+tr[data-bvid]:hover { background: #e8f0fe; }
+tr.downloading { background: #fff8e1; }
+pre#log { background: #1e1e1e; color: #d4d4d4; padding: 10px; border-radius: 6px; min-height: 60px; font-size: 12px; overflow: auto; white-space: pre-wrap; }

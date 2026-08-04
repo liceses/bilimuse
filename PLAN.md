@@ -49,7 +49,7 @@ MusicalBILI/
 │   ├── pipeline.py      # 一键闭环编排
 │   ├── cli.py           # typer 命令（get/download/search/login/doctor…）
 │   ├── tui.py           # Textual 交互式界面（可选 [tui]）
-│   └── web.py           # FastAPI（二期）
+│   ├── web.py           # FastAPI + WebSocket 界面（可选 [web]，原生单页）
 ├── tests/
 ├── setup.ps1        # Windows 一键部署（venv + 依赖，可选装 ffmpeg）
 ├── setup.sh         # Linux/macOS 一键部署
@@ -127,6 +127,6 @@ MusicalBILI/
 - **M3** 网易云元数据反查 + mutagen 打标签
 - **M4** 歌词获取（多源降级）+ 校准（偏移/缩放 + lyric-align）
 - **M5** pipeline 一键闭环（`get` 命令：歌词/歌名搜索→选版本→下载→标签→歌词校准）+ Textual TUI
-- **M6** FastAPI Web 界面
+- **M6** FastAPI Web 界面（WebSocket 进度、原生单页、[web] extra）
 
 每阶段验证：M1 能搜出并列出 B 站版本；M2 生成带正确命名和时长的音频文件；M3 文件 ID3 完整；M4 歌词时间与音频吻合（抽查）；M5/M6 端到端一条命令/一次点击完成。

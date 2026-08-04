@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MusicalBILI</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>MusicalBILI</h1>
+  <div id="doctor" class="meta"></div>
+</header>
+
+<main>
+  <form id="search-form">
+    <input id="q" type="text" placeholder="输入歌名 / 歌手 / 歌词片段" autofocus>
+    <button type="submit">搜索</button>
+  </form>
+
+  <div id="status" class="status"></div>
+  <div class="progress-wrap"><div id="progress"></div></div>
+
+  <table id="results">
+    <thead><tr><th>来源</th><th>BV号</th><th>时长</th><th>播放</th><th>UP主</th><th>标题</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <pre id="log"></pre>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
