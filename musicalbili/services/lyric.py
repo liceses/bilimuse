@@ -136,10 +136,17 @@ def plain_lines(text: str) -> str:
     return "\n".join(tx for _, tx in parse_lrc(text))
 
 
-async def fetch_lyrics(cfg: Config, meta: SongMeta | None, query: str, bvid: str, cid: int) -> Lyric | None:
+_SOURCE_LABEL = {"lrclib": "LRCLIB", "netease": "网易云", "bilibili": "B站字幕"}
+
+
+async def fetch_lyrics(
+    cfg: Config, meta: SongMeta | None, query: str, bvid: str, cid: int, on_event=None
+) -> Lyric | None:
     """按配置源顺序降级获取歌词；外文歌追加网易云双语增强。"""
     lyric: Lyric | None = None
     for source in cfg.lyric_sources:
+        if on_event:
+            await on_event({"type": "message", "text": f"获取歌词: 尝试 {_SOURCE_LABEL.get(source, source)}"})
         try:
             if source == "lrclib":
                 lyric = await _from_lrclib(cfg, meta, query)

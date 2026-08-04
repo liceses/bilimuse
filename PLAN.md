@@ -19,6 +19,7 @@ B 站深度定制的音乐下载器：输入歌名/歌手/**歌词片段** → �
 - ffmpeg（可选内嵌）：**`imageio-ffmpeg` 作为可选 extra** 打包静态 ffmpeg，`pip install -e ".[ffmpeg]"` 即装即用，不依赖用户系统环境；纯 m4a 用户可零依赖
 - `qrcode`（纯 Python，终端渲染 B 站扫码登录二维码）
 - `cryptography`（网易云 **weapi** 兜底端点：AES+RSA 签名）
+- 日志：`logging_setup.py`（文件滚动 + console WARNING）+ `status.py`（**统一状态通道**：emit 一次，UI 显示与日志双写，provider 级解析状态）
 - CLI：`typer`（基础命令）+ `textual`（交互式搜索/选版本）
 - Web：`fastapi` + 单页前端（挂核心库，二期）
 - 部署：`setup.ps1` / `setup.sh` 一键装依赖；`musicalbili doctor` 检测环境
@@ -46,6 +47,8 @@ MusicalBILI/
 │   │   ├── tagger.py    # mutagen 写标签 + 内嵌
 │   │   ├── lyric.py     # 歌词获取与匹配（按源降级）
 │   │   └── aligner.py   # 时间轴校准
+│   ├── logging_setup.py # 日志（文件滚动 + console WARNING，幂等）
+│   ├── status.py        # 统一状态通道（emit 显示+日志双写）
 │   ├── pipeline.py      # 一键闭环编排
 │   ├── cli.py           # typer 命令（get/download/search/login/doctor…）
 │   ├── tui.py           # Textual 交互式界面（可选 [tui]）
@@ -128,5 +131,6 @@ MusicalBILI/
 - **M4** 歌词获取（多源降级）+ 校准（偏移/缩放 + lyric-align）
 - **M5** pipeline 一键闭环（`get` 命令：歌词/歌名搜索→选版本→下载→标签→歌词校准）+ Textual TUI
 - **M6** FastAPI Web 界面（WebSocket 进度、原生单页、[web] extra）
+- **M7** 日志系统（文件滚动 + console WARNING）+ 统一状态通道（`status.py` emit 双写，provider 级解析状态，config/等待输入/解析/下载三端动态显示）
 
 每阶段验证：M1 能搜出并列出 B 站版本；M2 生成带正确命名和时长的音频文件；M3 文件 ID3 完整；M4 歌词时间与音频吻合（抽查）；M5/M6 端到端一条命令/一次点击完成。

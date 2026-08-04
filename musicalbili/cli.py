@@ -11,6 +11,7 @@ import typer
 
 from .config import Config, default_config_dir
 from .db import DownloadDB
+from .logging_setup import get_logger, log_dir, setup_logging
 from .providers.bilibili import BilibiliClient, BilibiliError
 from .providers.meta import MiguMeta, NeteaseMeta
 from .services.aligner import (
@@ -25,8 +26,26 @@ from .services.auth import LoginError, bili_login
 from .services.pipeline import download_song_pipeline
 from .services.search import search_versions
 from .services.tagger import auto_tag
+from .status import emit, register_display
 
 app = typer.Typer(add_completion=False)
+_log = get_logger("cli")
+
+
+@app.callback()
+def _main() -> None:
+    """全局初始化：日志 + 状态显示。"""
+    cfg = Config.load()
+    setup_logging(cfg.log_level)
+    register_display(_echo_status)
+
+
+def _echo_status(ev: dict) -> None:
+    text = ev.get("text", "")
+    if ev.get("level") == "WARNING" or ev.get("level") == "ERROR":
+        typer.echo(text, err=True)
+    else:
+        typer.echo(text)
 
 
 @app.command()
@@ -95,6 +114,7 @@ def download(
             )
         )
     except (BilibiliError, RuntimeError) as e:
+        _log.error("下载失败: %s", e, exc_info=True)
         typer.echo(f"下载失败: {e}", err=True)
         raise typer.Exit(code=1) from e
     typer.echo(f"\n已保存: {result['path']}")
@@ -126,6 +146,7 @@ def get(
     try:
         result = asyncio.run(_get(cfg, query, index, auto, page, no_tag, no_lyric, force_align))
     except (BilibiliError, RuntimeError) as e:
+        _log.error("get 失败: %s", e, exc_info=True)
         typer.echo(f"失败: {e}", err=True)
         raise typer.Exit(code=1) from e
     typer.echo(f"\n已保存: {result['path']}")
@@ -155,6 +176,7 @@ async def _echo_events(ev: dict) -> None:
 
 
 def _ask_index(count: int) -> int:
+    emit("INFO", f"等待输入: 选择版本序号 1-{count}（回车默认 1）")
     while True:
         s = input(f"选择序号 (1-{count}，回车默认 1): ").strip()
         if not s:
@@ -279,11 +301,13 @@ def login(config: Path = typer.Option(None, "--config", "-c", help="配置文件
 
 
 def _ask(prompt: str, default: str) -> str:
+    emit("INFO", f"等待输入: {prompt}（回车用默认 [{default}]）")
     s = input(f"{prompt}: ").strip()
     return s if s else default
 
 
 def _ask_bool(prompt: str, default: bool) -> bool:
+    emit("INFO", f"等待输入: {prompt}（y/n，回车用默认 [{default}]）")
     s = input(f"{prompt} (y/n): ").strip().lower()
     if not s:
         return default
@@ -291,6 +315,7 @@ def _ask_bool(prompt: str, default: bool) -> bool:
 
 
 def _ask_list(prompt: str, default: list[str]) -> list[str]:
+    emit("INFO", f"等待输入: {prompt}（逗号分隔，回车用默认 [{','.join(default)}]）")
     s = input(f"{prompt} [{','.join(default)}]: ").strip()
     return [x.strip() for x in (s if s else ",".join(default)).split(",") if x.strip()]
 
@@ -383,6 +408,11 @@ def config(config: Path = typer.Option(None, "--config", "-c", help="配置文�
     cfg.save(config)
     saved = config or default_config_dir() / "config.json"
     typer.echo(f"\n已保存: {saved}")
+    emit("INFO", f"已设置 download_dir = {cfg.download_dir}")
+    emit("INFO", f"已设置 format = {cfg.format}")
+    emit("INFO", f"已设置 lyric_sources = {','.join(cfg.lyric_sources)}")
+    emit("INFO", f"已设置 align_enabled = {cfg.align_enabled}，whisper_model = {cfg.whisper_model}")
+    emit("INFO", f"已设置 sessdata = {'已登录' if cfg.sessdata else '(空)'}，proxy = {cfg.proxy or '无'}")
     typer.echo(
         f"下载目录: {cfg.download_dir} | 格式: {cfg.format} | 歌词源: {','.join(cfg.lyric_sources)}"
     )
@@ -449,6 +479,7 @@ def doctor(
         typer.echo("未检测到本地/HF 缓存模型（musicalbili model download 可下载）")
     if cfg.hf_mirror:
         typer.echo(f"HF 镜像: {cfg.hf_mirror}")
+    typer.echo(f"日志: {log_dir() / 'musicalbili.log'}（level={cfg.log_level}）")
 
     if network:
         typer.echo("-- 接口连通性探测 --")

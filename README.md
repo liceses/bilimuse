@@ -127,6 +127,7 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
   "whisper_model": "small",
   "whisper_language": "zh",
   "vocal_separate": false,
+  "log_level": "INFO",
   "hf_mirror": "https://hf-mirror.com"
 }
 ```
@@ -140,6 +141,13 @@ musicalbili web --host 0.0.0.0 # 局域网其他设备访问
 - `whisper_model`：whisper 模型名（`tiny/base/small/medium/large-v3-turbo`）或本地目录路径（推荐 ModelScope 下载后填路径）。
 - `whisper_language`：ASR 语言兜底（自动检测失败时用，默认 `zh`）。
 - `vocal_separate`：是否 Demucs 人声分离（需 `.[separate]`，混音重伴奏歌更准）。
+- `log_level`：日志级别（`DEBUG/INFO/WARNING/ERROR`，默认 `INFO`；环境变量 `MUSICALBILI_LOG_LEVEL` 可覆盖）。
+
+## 日志与状态显示
+
+- **日志文件**：`<配置目录>/logs/musicalbili.log`（1MB×3 滚动；Win `%APPDATA%\musicalbili\logs`，Linux `~/.config/musicalbili/logs`）。
+- **统一状态通道**：CLI/TUI/Web 三端动态显示"系统在做什么"——搜索（含歌词反查）、解析元数据（按源：咪咕/网易云）、获取歌词（按源：LRCLIB/网易云/B站字幕）、下载进度、whisper 校准（步骤级）、配置向导（等待输入/已设置）。同一条状态同时写入日志，方便排查。
+- 排查：`musicalbili doctor` 显示日志路径；部署问题看 `setup.log`。
 
 ## 项目文档
 

@@ -17,7 +17,10 @@ from typing import Self
 import httpx
 
 from ..config import Config
+from ..logging_setup import get_logger
 from ..models import AudioStream, PlayInfo, VideoDetail, VideoPage, VideoVersion
+
+_log = get_logger("bilibili")
 
 API = "https://api.bilibili.com"
 _KEYS_RE = re.compile(r"^[\w]+$")
@@ -50,9 +53,12 @@ class BilibiliClient:
         """带网络抖动重试的 GET（本机 DNS 偶发 getaddrinfo 失败）。"""
         for attempt in range(3):
             try:
-                return await self.client.get(url, **kwargs)
+                r = await self.client.get(url, **kwargs)
+                _log.debug("GET %s -> %s (%.2fs)", url, r.status_code, r.elapsed.total_seconds())
+                return r
             except httpx.ConnectError:
                 if attempt == 2:
+                    _log.error("B站连接失败: %s", url)
                     raise
                 await asyncio.sleep(0.5 * (attempt + 1))
         raise BilibiliError("unreachable")
@@ -98,6 +104,7 @@ class BilibiliClient:
             r = await self._request(url, params=params)
             data = r.json()
             if data.get("code") == -412 and attempt == 0:
+                _log.warning("B站 %s 触发 -412 风控，刷新 wbi 重试", path)
                 self._mixin_key = None
                 if wbi:
                     params = await self._wbi_sign(params)
@@ -105,6 +112,7 @@ class BilibiliClient:
             if data.get("code") != 0:
                 raise BilibiliError(f"{path} 返回 code={data.get('code')}: {data.get('message')}")
             return data.get("data") or {}
+        _log.error("B站 %s 持续被风控(-412)", path)
         raise BilibiliError(f"{path} 持续被风控(-412)")
 
     async def close(self) -> None:
@@ -130,14 +138,18 @@ class BilibiliClient:
                     wbi=True,
                 )
                 if data.get("result"):
-                    return self._parse_search(data)
+                    versions = self._parse_search(data)
+                    _log.info("B站搜索 '%s' -> %d 条", keyword, len(versions))
+                    return versions
             except BilibiliError:
                 pass
         data = await self._get(
             "x/web-interface/search/type",
             {"search_type": "video", "keyword": keyword, "order": order, "page_size": limit},
         )
-        return self._parse_search(data)
+        versions = self._parse_search(data)
+        _log.info("B站搜索 '%s' -> %d 条", keyword, len(versions))
+        return versions
 
     def _parse_search(self, data: dict) -> list[VideoVersion]:
         versions: list[VideoVersion] = []

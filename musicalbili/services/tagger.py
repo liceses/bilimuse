@@ -175,7 +175,12 @@ def tag_file(path: Path, meta: SongMeta, cover: bytes | None = None, lyrics: str
         raise ValueError(f"不支持的标签格式: {ext}")
 
 
-async def search_metadata(query: str, providers: list, duration: float | None = None) -> tuple[object | None, SongMeta | None]:
+async def search_metadata(
+    query: str,
+    providers: list,
+    duration: float | None = None,
+    on_event=None,
+) -> tuple[object | None, SongMeta | None]:
     """合并所有源候选统一 pick_best（含时长约束），返回 (数据源, 最佳歌曲)。
 
     不再"首个源命中即返回"——否则 migu 同名异歌手会盖过 netease 的正确命中。
@@ -183,6 +188,8 @@ async def search_metadata(query: str, providers: list, duration: float | None = 
     pool: list[SongMeta] = []
     results: dict[object, list[SongMeta]] = {}
     for provider in providers:
+        if on_event:
+            await on_event({"type": "message", "text": f"解析元数据: {getattr(provider, 'label', provider.name)}"})
         try:
             songs = await provider.search(query)
         except Exception:  # noqa: BLE001, S112 - 单源失败不阻断其他源
@@ -199,10 +206,11 @@ async def search_metadata(query: str, providers: list, duration: float | None = 
 
 
 async def auto_tag(
-    path: Path, query: str, providers: list, cfg: Config, fallback_artist: str = "", duration: float | None = None
+    path: Path, query: str, providers: list, cfg: Config, fallback_artist: str = "", duration: float | None = None,
+    on_event=None,
 ) -> tuple[Path | None, SongMeta | None]:
     """多源反查 → 打标签 → 重命名。返回 (新路径, 元数据)；无匹配返回 (None, None)。"""
-    provider, song = await search_metadata(query, providers, duration)
+    provider, song = await search_metadata(query, providers, duration, on_event)
     if not song:
         return None, None
     cover = await provider.fetch_cover_bytes(song)

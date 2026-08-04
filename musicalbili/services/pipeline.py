@@ -40,7 +40,7 @@ async def _attach_lyric(
     if force_align and not align_available():
         await emit({"type": "warning", "text": "--align 需要 lyric-align，请装 `pip install -e '.[align]'`"})
     await emit({"type": "message", "text": "获取歌词..."})
-    lyric = await fetch_lyrics(cfg, meta, title, bvid, cid)
+    lyric = await fetch_lyrics(cfg, meta, title, bvid, cid, on_event=emit)
     sidecar = path.with_suffix(".lrc")
     if lyric is None:
         lyric = placeholder_lyric()
@@ -120,7 +120,8 @@ async def download_song_pipeline(
             await emit({"type": "stage", "stage": "tag", "text": "反查元数据并打标签..."})
             async with MiguMeta(cfg) as migu, NeteaseMeta(cfg) as netease:
                 new_path, meta = await auto_tag(
-                    path, title, [migu, netease], cfg, fallback_artist=detail.author, duration=video_dur
+                    path, title, [migu, netease], cfg, fallback_artist=detail.author, duration=video_dur,
+                    on_event=emit,
                 )
             if meta:
                 path = new_path

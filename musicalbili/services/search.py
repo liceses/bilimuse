@@ -5,8 +5,12 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from ..config import Config
+from ..logging_setup import get_logger
 from ..models import VideoVersion
 from ..providers.bilibili import BilibiliClient
+from ..status import emit
+
+_log = get_logger("search")
 
 
 class SearchHit(BaseModel):
@@ -37,6 +41,7 @@ async def search_versions(cfg: Config, query: str, limit: int = 10) -> list[Sear
     """
     hits: list[SearchHit] = []
     seen: set[str] = set()
+    emit("INFO", f"正在搜索（B站 + 网易云歌词反查）: {query} ...")
     async with BilibiliClient(cfg) as b:
         for v in await b.search_video(query, limit=limit):
             seen.add(v.bvid)
@@ -50,4 +55,8 @@ async def search_versions(cfg: Config, query: str, limit: int = 10) -> list[Sear
                         seen.add(v.bvid)
                         hits.append(SearchHit(version=v, source="lyric"))
     hits.sort(key=lambda h: h.version.play, reverse=True)
+    n_direct = sum(1 for h in hits if h.source == "direct")
+    n_lyric = len(hits) - n_direct
+    _log.info("搜索 '%s' 命中 %d 条（direct %d / lyric %d）", query, len(hits), n_direct, n_lyric)
+    emit("INFO", f"命中 {len(hits)} 条（直接搜索 {n_direct} / 歌词反查 {n_lyric}）")
     return hits

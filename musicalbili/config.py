@@ -41,6 +41,7 @@ class Config:
         self.whisper_model: str = "small"
         self.whisper_language: str = "zh"
         self.vocal_separate: bool = False
+        self.log_level: str = "INFO"
         self.hf_mirror: str = "https://hf-mirror.com"
 
     @classmethod

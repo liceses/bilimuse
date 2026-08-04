@@ -15,9 +15,12 @@ from typing import ClassVar, Self
 import httpx
 
 from ..config import Config
+from ..logging_setup import get_logger
 from ..models import SongMeta
 from ..services.download import find_ffmpeg
 from .bilibili import _strip_html
+
+_log = get_logger("meta")
 
 NETEASE_API = "https://music.163.com"
 MIGU_API = "https://pd.musicapp.migu.cn/MIGUM2.0/v1.0"
@@ -101,15 +104,19 @@ class NeteaseMeta(_BaseMeta):
     """
 
     name = "netease"
+    label = "网易云"
 
     async def search(self, query: str, limit: int = 10) -> list[SongMeta]:
         try:
             songs = await self._search_legacy(query, limit)
             if songs:
+                _log.info("netease 搜索 '%s' -> %d 首", query, len(songs))
                 return songs
-        except Exception:  # noqa: BLE001, S110 - 旧版失效自动降级 weapi
-            pass
-        return await self._search_weapi(query, limit)
+        except Exception:  # noqa: BLE001 - 旧版失效自动降级 weapi
+            _log.warning("netease 旧版搜索失败，降级 weapi")
+        songs = await self._search_weapi(query, limit)
+        _log.info("netease(weapi) 搜索 '%s' -> %d 首", query, len(songs))
+        return songs
 
     async def _search_legacy(self, query: str, limit: int) -> list[SongMeta]:
         r = await self.client.get(
@@ -204,6 +211,7 @@ class MiguMeta(_BaseMeta):
     """咪咕音乐（MIGUM2.0 明文接口，曲库含周杰伦）。"""
 
     name = "migu"
+    label = "咪咕"
     referer = "https://music.migu.cn/"
     _search_params: ClassVar[dict[str, str]] = {
         "ua": "Android_migu",
@@ -217,6 +225,7 @@ class MiguMeta(_BaseMeta):
         r.raise_for_status()
         data = r.json()
         if data.get("code") != "000000":
+            _log.warning("咪咕搜索返回异常 code=%s", data.get("code"))
             return []
         songs: list[SongMeta] = []
         for s in (data.get("songResultData") or {}).get("result") or []:
@@ -233,6 +242,7 @@ class MiguMeta(_BaseMeta):
                     language=_lang_from_tags(s.get("tags")),
                 )
             )
+        _log.info("咪咕搜索 '%s' -> %d 首", query, len(songs))
         return songs
 
     async def fetch_cover_bytes(self, song: SongMeta) -> bytes | None:
