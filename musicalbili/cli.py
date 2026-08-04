@@ -13,7 +13,14 @@ from .config import Config, default_config_dir
 from .db import DownloadDB
 from .providers.bilibili import BilibiliClient, BilibiliError
 from .providers.meta import MiguMeta, NeteaseMeta
-from .services.aligner import align_available
+from .services.aligner import (
+    WHISPER_SIZES,
+    align_available,
+    detect_models,
+    download_model,
+    faster_whisper_installed,
+    resolve_model,
+)
 from .services.auth import LoginError, bili_login
 from .services.pipeline import download_song_pipeline
 from .services.search import search_versions
@@ -271,6 +278,69 @@ def _ask_list(prompt: str, default: list[str]) -> list[str]:
     return [x.strip() for x in (s if s else ",".join(default)).split(",") if x.strip()]
 
 
+model_app = typer.Typer(help="whisper 模型管理（检测/下载/设置）")
+app.add_typer(model_app, name="model")
+
+
+@model_app.command("list")
+def model_list(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
+    """列出检测到的模型与当前配置解析。"""
+    cfg = Config.load(config)
+    resolved = resolve_model(cfg)
+    typer.echo(f"当前配置 whisper_model: {resolved['used'] or '(未配置)'} → {resolved['note']}")
+    models = detect_models()
+    if models:
+        typer.echo("检测到模型:")
+        for m in models:
+            mark = "  <= 使用中" if resolved["used"] == m["name"] or str(Path(resolved["used"])).endswith(m["name"]) else ""
+            typer.echo(f"  [{m['kind']}] {m['name']} ({m['size_mb']}MB) {m['path']}{mark}")
+    else:
+        typer.echo("未检测到本地/HF 缓存模型")
+    typer.echo(f"可下载: {', '.join(WHISPER_SIZES)}（musicalbili model download <size>）")
+    typer.echo(
+        f"依赖: lyric-align={'已装' if align_available() else '未装'} | "
+        f"faster-whisper={'已装' if faster_whisper_installed() else '未装'}"
+    )
+
+
+@model_app.command("download")
+def model_download(
+    size: str = typer.Argument(..., help="tiny/base/small/medium/large-v3-turbo"),
+    source: str = typer.Option("modelscope", "--source", help="modelscope（国内快）或 hf"),
+    no_set: bool = typer.Option(False, "--no-set", help="下载后不写入配置"),
+    config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
+) -> None:
+    """从 ModelScope/HF 下载 whisper 模型到 models/。"""
+    cfg = Config.load(config)
+    dest = Path("models") / f"faster-whisper-{size}"
+
+    async def status(text: str) -> None:
+        typer.echo(text)
+
+    try:
+        asyncio.run(download_model(size, dest, source=source, hf_mirror=cfg.hf_mirror, on_status=status))
+    except RuntimeError as e:
+        typer.echo(f"下载失败: {e}", err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(f"下载完成: {dest}")
+    if not no_set:
+        cfg.whisper_model = str(dest)
+        cfg.save(config)
+        typer.echo(f"已写入配置 whisper_model = {dest}")
+
+
+@model_app.command("set")
+def model_set(
+    model: str = typer.Argument(..., help="模型名(small/base...) 或本地路径"),
+    config: Path = typer.Option(None, "--config", "-c", help="配置文件路径"),
+) -> None:
+    """设置 whisper_model（名或本地路径）。"""
+    cfg = Config.load(config)
+    cfg.whisper_model = model
+    cfg.save(config)
+    typer.echo(f"whisper_model = {model}")
+
+
 @app.command()
 def config(config: Path = typer.Option(None, "--config", "-c", help="配置文件路径")) -> None:
     """交互式配置向导（免手编 config.json）。"""
@@ -350,8 +420,16 @@ def doctor(
     db.close()
     typer.echo(f"下载历史: {count} 条")
     typer.echo(
-        f"歌词校准: {'lyric-align 可用（whisper=' + cfg.whisper_model + '）' if align_available() else '未装 lyric-align，装 `pip install -e .[align]` 可启用精确校准'}"
+        f"歌词校准: {'lyric-align 可用' if align_available() else '未装 lyric-align（pip install -e .[align]）'}"
+        f" | faster-whisper: {'已装' if faster_whisper_installed() else '未装'}"
     )
+    resolved = resolve_model(cfg)
+    typer.echo(f"whisper 模型: {resolved['used'] or '(未配置)'}（{resolved['note']}）")
+    models = detect_models()
+    if models:
+        typer.echo("已检测模型: " + ", ".join(f"{m['name']}({m['size_mb']}MB)" for m in models))
+    else:
+        typer.echo("未检测到本地/HF 缓存模型（musicalbili model download 可下载）")
     if cfg.hf_mirror:
         typer.echo(f"HF 镜像: {cfg.hf_mirror}")
 

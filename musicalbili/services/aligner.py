@@ -13,12 +13,91 @@ import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+import httpx
+
 from ..config import Config
 from ..models import Lyric
 from .download import find_ffmpeg
 from .lyric import detect_lyric_language, parse_lrc, plain_lines, render_lrc
 
 _DURATION_RE = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
+WHISPER_SIZES = ["tiny", "base", "small", "medium", "large-v3-turbo"]
+_MODEL_FILES = ["config.json", "model.bin", "tokenizer.json", "vocabulary.txt"]
+
+
+def _hf_cache_dir() -> Path:
+    return Path.home() / ".cache" / "huggingface" / "hub"
+
+
+def faster_whisper_installed() -> bool:
+    return importlib.util.find_spec("faster_whisper") is not None
+
+
+def detect_models() -> list[dict]:
+    """检测可用的 whisper 模型：本地 models/ + HF 缓存。"""
+    models: list[dict] = []
+    local = Path("models")
+    if local.is_dir():
+        for d in sorted(local.iterdir()):
+            if d.is_dir() and (d / "model.bin").is_file():
+                size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+                models.append({"kind": "local", "name": d.name, "path": str(d), "size_mb": round(size / 1e6)})
+    hf = _hf_cache_dir()
+    if hf.is_dir():
+        for d in hf.glob("models--Systran--faster-whisper-*"):
+            if not any(d.rglob("model.bin")):
+                continue
+            size = sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+            name = d.name.replace("models--Systran--", "")
+            models.append({"kind": "cached", "name": name, "path": str(d), "size_mb": round(size / 1e6)})
+    return models
+
+
+def resolve_model(cfg: Config) -> dict:
+    """解析配置的 whisper_model → 实际使用与状态（本地/缓存/缺失）。"""
+    m = (cfg.whisper_model or "").strip()
+    if not m:
+        return {"used": "", "kind": "none", "note": "未配置 whisper_model"}
+    p = Path(m)
+    if p.is_dir() and (p / "model.bin").is_file():
+        return {"used": m, "kind": "local", "note": "本地模型"}
+    cached = _hf_cache_dir() / f"models--Systran--faster-whisper-{m}"
+    if cached.is_dir() and any(cached.rglob("model.bin")):
+        return {"used": m, "kind": "cached", "note": "HF 缓存"}
+    return {"used": m, "kind": "missing", "note": "未找到，可 `musicalbili model download` 下载"}
+
+
+async def download_model(
+    size: str,
+    dest: Path,
+    source: str = "modelscope",
+    hf_mirror: str = "",
+    on_status: Callable[[str], Awaitable[None]] | None = None,
+) -> Path:
+    """从 ModelScope(默认)/HF 下载 faster-whisper 模型到 dest。"""
+    size = size.strip().lstrip(".")
+    repo = f"Systran/faster-whisper-{size}"
+    if source == "modelscope":
+        base = f"https://www.modelscope.cn/models/{repo}/resolve/master"
+    else:
+        base = f"{hf_mirror or 'https://huggingface.co'}/{repo}/resolve/main"
+    dest.mkdir(parents=True, exist_ok=True)
+    async with httpx.AsyncClient(
+        trust_env=False, timeout=httpx.Timeout(180.0, connect=15.0), follow_redirects=True
+    ) as client:
+        for fname in _MODEL_FILES:
+            url = f"{base}/{fname}"
+            if on_status:
+                await on_status(f"下载 {repo}/{fname} ...")
+            r = await client.get(url)
+            if r.status_code != 200:
+                continue
+            tmp = dest / f"{fname}.part"
+            tmp.write_bytes(r.content)
+            tmp.replace(dest / fname)
+    if not (dest / "model.bin").is_file():
+        raise RuntimeError(f"下载失败：未取得 model.bin（{repo}）")
+    return dest
 
 
 def _align_exe() -> str | None:
@@ -167,11 +246,12 @@ async def calibrate_align(
     if not exe:
         lyric.warning = "未安装 lyric-align，装 `pip install -e '.[align]'` 后可用"
         return None
+    model = force_model or cfg.whisper_model
     language = detect_lyric_language(lyric.text) or language_hint or cfg.whisper_language
     if on_status:
+        resolved = resolve_model(cfg) if not force_model else {"used": model, "kind": "", "note": ""}
         await on_status(
-            f"正在 whisper 校准（语言 {language}，模型 {force_model or cfg.whisper_model}；"
-            "首次需下载模型或配置本地路径，可能较久）..."
+            f"使用模型: {model}（{resolved['note']}），语言 {language}，正在转写..."
         )
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
@@ -182,8 +262,8 @@ async def calibrate_align(
             exe, str(audio_path), str(lyrics_txt),
             "-o", str(out_json), "-f", "json",
             "--language", language,
-            "--model", force_model or cfg.whisper_model,
-            "--no-vad", "--interpolate", "-q",
+            "--model", model,
+            "--no-vad", "--interpolate",
         ]
         if cfg.vocal_separate:
             if importlib.util.find_spec("demucs"):
@@ -197,14 +277,39 @@ async def calibrate_align(
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE, env=env
         )
+
+        tail_holder: list[str] = []
+
+        async def _stream_stderr() -> str:
+            """逐行读 stderr 步骤日志，回传 on_status；记录尾部供失败详情。"""
+            tail = ""
+            assert proc.stderr is not None
+            while True:
+                line = await proc.stderr.readline()
+                if not line:
+                    break
+                text = line.decode(errors="replace").strip()
+                if text:
+                    tail = (tail + "\n" + text)[-300:]
+                    if on_status:
+                        await on_status(text)
+            tail_holder.append(tail)
+            return tail
+
+        stream_task = asyncio.create_task(_stream_stderr())
         try:
-            _, err = await proc.communicate()
+            await proc.wait()
         finally:
+            stream_task.cancel()
+            try:
+                await stream_task
+            except asyncio.CancelledError:
+                pass
             if proc.returncode is None:
                 proc.kill()
                 await proc.wait()
         if proc.returncode != 0 or not out_json.is_file():
-            lyric.warning = f"lyric-align 失败: {err.decode(errors='replace')[-300:]}"
+            lyric.warning = f"lyric-align 失败: {(tail_holder[0] if tail_holder else '无输出')[-300:]}"
             return None
         try:
             data = json.loads(out_json.read_text(encoding="utf-8"))

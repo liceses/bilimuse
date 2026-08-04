@@ -120,3 +120,31 @@
 - `pick_best` 时长/后缀单测 + `search_metadata` 合并池 ✅（55 passed）
 - 真实 EVA 标题 4 例全标 宇多田 ✅
 - TUI headless：ProgressBar 100 + status 完成 ✅
+
+## 模型信息管理（检测 / 展示 / 进度 / 下载）
+
+### 能力
+
+1. **检测**：`detect_models()` 扫 `models/`（本地）+ HF 缓存 `~/.cache/huggingface/hub/models--Systran--faster-whisper-*`；`resolve_model()` 解析 `whisper_model` → 本地/缓存/缺失。
+2. **CLI `musicalbili model`**：`list`（检测+配置解析+可下载名单+依赖状态）、`download <size> [--source modelscope|hf] [--no-set]`、`set <size|path>`。
+3. **进度（步骤级）**：`calibrate_align` 去 `-q`，**流式读 stderr** → 每行 emit 状态（"转写中…/分段 N/匹配阈值/对齐 X/Y 行/wrote out.json"）；跑前 emit **"使用模型: <resolved>（本地/HF缓存/待下载）"**。
+4. **doctor**：显示 lyric-align/faster-whisper 安装状态 + resolved 模型 + 检测列表。
+5. **下载**：ModelScope（默认，国内快）`www.modelscope.cn/models/Systran/faster-whisper-<size>/resolve/master/`，文件 404 跳过（config/model.bin/tokenizer/vocabulary）；`--source hf` 走 HF_ENDPOINT 镜像。
+
+### 踩坑
+
+- lyric-align `-q` 抑制所有进度日志 → 流式需去掉 `-q`；失败详情改为流式尾部（`tail_holder`）。
+- `_stream_stderr` 用 `asyncio.create_task` 逐行读 `proc.stderr`，主任务 `proc.wait()`；退出时 cancel 任务 + kill（防泄漏告警，沿用之前修复）。
+
+### 验证
+
+- `model list`：显示本地 small(486MB) + HF缓存 small + 配置解析"small→HF 缓存" ✅
+- `model download base`：ModelScope 4 文件下载到 `models/faster-whisper-base`（model.bin 145MB）✅
+- `model set models/faster-whisper-base`：写配置 ✅
+- 校准流式：`[状态] 使用模型… / line 16-32 sim… / only 4/32 lines matched… / wrote out.json` ✅（base 模型弱匹配 4/32，正体现进度可见性）
+- 单测：`resolve_model` 本地/缺失/未配置 ✅（58 passed）
+
+### 待办（后续）
+
+- [ ] whisper 识别**百分比进度**（绕过 lyric-align CLI，直接调 faster-whisper `progress_callback` + lyric_align.align 库，耦合更深）
+- [ ] TUI **完整模型管理面板**（快捷键调出：list/download/set）
